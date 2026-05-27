@@ -22,35 +22,18 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Set up Go
-        uses: actions/setup-go@v5
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
         with:
-          go-version-file: go.mod
+          node-version-file: .nvmrc
+          cache: npm
+          cache-dependency-path: package-lock.json
 
       - name: Install dependencies
-        run: go mod download
+        run: npm ci
 
-      - name: Run tests with coverage
-        run: go test -coverprofile=coverage.out -covermode=atomic ./...
+      - name: Build application
+        run: npm run build
 
-      - name: Convert coverage to lcov
-        run: |
-          go install github.com/jandelgado/gcov2lcov@latest
-          mkdir -p coverage
-          gcov2lcov -infile=coverage.out -outfile=coverage/lcov.info
-
-      - name: Upload coverage report
-        uses: actions/upload-artifact@v4
-        with:
-          name: coverage-report
-          path: coverage/lcov.info
-          retention-days: 1
-
-  codacy_coverage:
-    name: Codacy Coverage
-    needs: [build_and_test]
-    uses: fvalenzuela-dev/.github/.github/workflows/codacy-coverage.yml@main
-    with:
-      coverage_report_path: "coverage/lcov.info"
-    secrets:
-      CODACY_PROJECT_TOKEN: ${{ secrets.CODACY_PROJECT_TOKEN }}
+      - name: Run tests
+        run: npm test -- --watch=false
