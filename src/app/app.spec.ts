@@ -18,7 +18,7 @@ describe('App', () => {
     const fixture = TestBed.createComponent(App);
     fixture.detectChanges();
     await fixture.whenStable();
-    const compiled = fixture.nativeElement as HTMLElement;
-    expect(compiled.querySelector('h1')?.textContent).toContain('Panel de control');
+    const hostElement = fixture.nativeElement as HTMLElement;
+    expect(hostElement.querySelector('h1')?.textContent).toContain('Panel de control');
   });
 });
