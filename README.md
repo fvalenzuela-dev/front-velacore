@@ -16,7 +16,7 @@ Aplicación frontend de Velacore creada con Angular CLI. Este proyecto usa Angul
 cd /Users/fernandovalenzuela/dev/frontend/angular/front-velacore
 ```
 
-2. Cargá la versión de Node definida por el proyecto:
+1. Cargá la versión de Node definida por el proyecto:
 
 ```bash
 nvm use
@@ -29,7 +29,7 @@ nvm install 24
 nvm use
 ```
 
-3. Instalá las dependencias:
+1. Instalá las dependencias:
 
 ```bash
 npm install
