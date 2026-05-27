@@ -1,59 +1,189 @@
-# FrontVelacore
+# Front Velacore
 
-This project was generated using [Angular CLI](https://github.com/angular/angular-cli) version 21.2.12.
+Aplicación frontend de Velacore creada con Angular CLI. Este proyecto usa Angular 21, npm como gestor de paquetes y Node.js 24 definido en `.nvmrc`.
 
-## Development server
+## Requisitos
 
-To start a local development server, run:
+- Node.js 24, preferentemente administrado con `nvm`.
+- npm 11.12.1 o compatible, definido en `package.json` como `packageManager`.
+- Angular CLI disponible desde las dependencias del proyecto. No hace falta instalarlo globalmente si usás `npx ng` o los scripts de npm.
 
-```bash
-ng serve
-```
+## Instalación
 
-Once the server is running, open your browser and navigate to `http://localhost:4200/`. The application will automatically reload whenever you modify any of the source files.
-
-## Code scaffolding
-
-Angular CLI includes powerful code scaffolding tools. To generate a new component, run:
+1. Ubicate en la carpeta del proyecto:
 
 ```bash
-ng generate component component-name
+cd /Users/fernandovalenzuela/dev/frontend/angular/front-velacore
 ```
 
-For a complete list of available schematics (such as `components`, `directives`, or `pipes`), run:
+2. Cargá la versión de Node definida por el proyecto:
 
 ```bash
-ng generate --help
+nvm use
 ```
 
-## Building
-
-To build the project run:
+Si todavía no tenés Node 24 instalado:
 
 ```bash
-ng build
+nvm install 24
+nvm use
 ```
 
-This will compile your project and store the build artifacts in the `dist/` directory. By default, the production build optimizes your application for performance and speed.
-
-## Running unit tests
-
-To execute unit tests with the [Vitest](https://vitest.dev/) test runner, use the following command:
+3. Instalá las dependencias:
 
 ```bash
-ng test
+npm install
 ```
 
-## Running end-to-end tests
+## Ejecución en desarrollo
 
-For end-to-end (e2e) testing, run:
+Para levantar el servidor local:
 
 ```bash
-ng e2e
+npm start
 ```
 
-Angular CLI does not come with an end-to-end testing framework by default. You can choose one that suits your needs.
+El comando ejecuta `ng serve`. Luego abrí:
 
-## Additional Resources
+```text
+http://localhost:4200/
+```
 
-For more information on using the Angular CLI, including detailed command references, visit the [Angular CLI Overview and Command Reference](https://angular.dev/tools/cli) page.
+Angular recarga automáticamente la aplicación cuando detecta cambios en los archivos fuente.
+
+## Compilación
+
+### Build de producción
+
+```bash
+npm run build
+```
+
+Este comando ejecuta `ng build` con la configuración de producción por defecto y genera los artefactos en `dist/`.
+
+### Build en modo watch
+
+```bash
+npm run watch
+```
+
+Este comando ejecuta `ng build --watch --configuration development` y recompila cuando cambian los archivos.
+
+## Tests
+
+Para ejecutar los tests unitarios:
+
+```bash
+npm test
+```
+
+El comando usa `ng test` con el builder de testing configurado por Angular.
+
+## Comandos útiles de Angular CLI
+
+Podés usar Angular CLI desde npm:
+
+```bash
+npm run ng -- generate component nombre-componente
+npm run ng -- generate service nombre-servicio
+npm run ng -- generate directive nombre-directiva
+npm run ng -- generate pipe nombre-pipe
+npm run ng -- help
+```
+
+También podés usar `npx ng` si preferís invocar directamente la CLI local:
+
+```bash
+npx ng generate component nombre-componente
+```
+
+## Estructura del proyecto
+
+```text
+.
+├── angular.json          # Configuración de Angular CLI
+├── package.json          # Scripts, dependencias y packageManager
+├── public/               # Assets públicos servidos por Angular
+├── src/
+│   ├── index.html        # HTML principal
+│   ├── main.ts           # Punto de entrada de la aplicación
+│   ├── styles.css        # Estilos globales
+│   └── app/
+│       ├── app.ts        # Componente raíz
+│       ├── app.html      # Template del componente raíz
+│       ├── app.css       # Estilos del componente raíz
+│       ├── app.config.ts # Configuración de providers de la app
+│       ├── app.routes.ts # Rutas de la aplicación
+│       └── app.spec.ts   # Tests del componente raíz
+├── tsconfig*.json        # Configuración de TypeScript
+└── .nvmrc                # Versión de Node requerida: 24
+```
+
+## Versiones y entorno
+
+- Angular: `^21.2.x`
+- Angular CLI: `^21.2.12`
+- TypeScript: `~5.9.2`
+- Node.js requerido por el proyecto: `24`
+- npm declarado: `11.12.1`
+- Configuración estricta de TypeScript y Angular templates habilitada.
+- El build de producción es la configuración por defecto de `ng build`.
+- El servidor de desarrollo usa la configuración `development` por defecto.
+
+## Verificación rápida
+
+Después de instalar dependencias, podés verificar el entorno con:
+
+```bash
+node --version
+npm --version
+npm run ng -- version
+npm run build
+npm test
+```
+
+## Troubleshooting
+
+### `nvm: command not found`
+
+Si la terminal no reconoce `nvm`, probablemente no está cargado en tu shell. Verificá que tu archivo de configuración (`~/.zshrc`, `~/.bashrc` o equivalente) cargue `nvm`.
+
+Ejemplo habitual para zsh:
+
+```bash
+export NVM_DIR="$HOME/.nvm"
+[ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm.sh"
+```
+
+Luego reiniciá la terminal o ejecutá:
+
+```bash
+source ~/.zshrc
+```
+
+### La versión de Node no coincide
+
+Ejecutá:
+
+```bash
+nvm install 24
+nvm use
+node --version
+```
+
+### Problemas con dependencias
+
+Si hay errores raros después de cambiar de versión de Node, reinstalá dependencias:
+
+```bash
+rm -rf node_modules package-lock.json
+npm install
+```
+
+### El puerto 4200 está ocupado
+
+Levantá Angular en otro puerto:
+
+```bash
+npm start -- --port 4300
+```
