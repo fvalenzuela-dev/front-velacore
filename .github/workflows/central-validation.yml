@@ -37,3 +37,11 @@ jobs:
 
       - name: Run tests
         run: npm test -- --watch=false
+  codacy_coverage:
+    name: Codacy Coverage
+    needs: [build_and_test]
+    uses: fvalenzuela-dev/.github/.github/workflows/codacy-coverage.yml@d4f30734ca2858a553e062468515b7eb348c2365
+    with:
+      coverage_report_path: 'coverage/lcov.info'
+    secrets:
+      CODACY_PROJECT_TOKEN: ${{ secrets.CODACY_PROJECT_TOKEN }}
