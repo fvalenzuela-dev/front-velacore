@@ -1,6 +1,6 @@
 # Front Velacore
 
-Aplicación frontend de Velacore creada con Angular CLI. Este proyecto usa Angular 21, npm como gestor de paquetes y Node.js 24 definido en `.nvmrc`.
+Aplicación frontend de Velacore creada con Angular CLI. Este proyecto usa Angular 21, Tailwind CSS, npm como gestor de paquetes y Node.js 24 definido en `.nvmrc`.
 
 ## Requisitos
 
@@ -124,6 +124,7 @@ npx ng generate component nombre-componente
 - Angular: `^21.2.x`
 - Angular CLI: `^21.2.12`
 - TypeScript: `~5.9.2`
+- Tailwind CSS: `^4.x`, configurado con PostCSS e importado desde `src/styles.css`.
 - Node.js requerido por el proyecto: `24`
 - npm declarado: `11.12.1`
 - Configuración estricta de TypeScript y Angular templates habilitada.
