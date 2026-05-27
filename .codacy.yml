@@ -1,0 +1,7 @@
+---
+engines:
+  stylelint:
+    exclude_paths:
+      - "src/styles.css"
+exclude_paths:
+  - "package-lock.json"
