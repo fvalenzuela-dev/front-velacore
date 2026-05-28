@@ -25,10 +25,10 @@ describe('TradingPage', () => {
     const fixture = TestBed.createComponent(TradingPage);
     fixture.detectChanges();
 
-    const page = fixture.nativeElement as HTMLElement;
-    const headings = Array.from(page.querySelectorAll('h2'));
+    const hostElement = fixture.nativeElement as HTMLElement;
+    const headings = Array.from(hostElement.querySelectorAll('h2'));
 
     expect(headings.map((heading) => heading.textContent?.trim())).toEqual(['Trading']);
-    expect(page.textContent).toContain('This section is ready for future trading workflows.');
+    expect(hostElement.textContent).toContain('This section is ready for future trading workflows.');
   });
 });

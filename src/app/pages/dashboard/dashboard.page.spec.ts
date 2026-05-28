@@ -35,16 +35,16 @@ describe('DashboardPage', () => {
     const fixture = TestBed.createComponent(DashboardPage);
     fixture.detectChanges();
 
-    const page = fixture.nativeElement as HTMLElement;
+    const hostElement = fixture.nativeElement as HTMLElement;
 
-    expect(page.textContent).toContain('Ingresos del mes');
-    expect(page.textContent).toContain('$ 82.450');
-    expect(page.textContent).toContain('Clientes activos');
-    expect(page.textContent).toContain('1.248');
-    expect(page.textContent).toContain('Pedidos abiertos');
-    expect(page.textContent).toContain('36');
-    expect(page.textContent).toContain('Satisfacción');
-    expect(page.textContent).toContain('97%');
+    expect(hostElement.textContent).toContain('Ingresos del mes');
+    expect(hostElement.textContent).toContain('$ 82.450');
+    expect(hostElement.textContent).toContain('Clientes activos');
+    expect(hostElement.textContent).toContain('1.248');
+    expect(hostElement.textContent).toContain('Pedidos abiertos');
+    expect(hostElement.textContent).toContain('36');
+    expect(hostElement.textContent).toContain('Satisfacción');
+    expect(hostElement.textContent).toContain('97%');
   });
 
   it('should render the reusable button showcase and disabled example', () => {
@@ -70,13 +70,13 @@ describe('DashboardPage', () => {
     const fixture = TestBed.createComponent(DashboardPage);
     fixture.detectChanges();
 
-    const page = fixture.nativeElement as HTMLElement;
+    const hostElement = fixture.nativeElement as HTMLElement;
 
-    expect(Array.from(page.querySelectorAll('span')).some((span) => span.textContent?.trim() === 'D7')).toBe(true);
-    expect(page.textContent).toContain('Objetivo comercial');
-    expect(page.textContent).toContain('Nuevo contrato cerrado');
-    expect(page.textContent).toContain('Alerta de stock');
-    expect(page.textContent).toContain('Pago confirmado');
-    expect(page.textContent).toContain('Soporte resuelto');
+    expect(Array.from(hostElement.querySelectorAll('span')).some((span) => span.textContent?.trim() === 'D7')).toBe(true);
+    expect(hostElement.textContent).toContain('Objetivo comercial');
+    expect(hostElement.textContent).toContain('Nuevo contrato cerrado');
+    expect(hostElement.textContent).toContain('Alerta de stock');
+    expect(hostElement.textContent).toContain('Pago confirmado');
+    expect(hostElement.textContent).toContain('Soporte resuelto');
   });
 });
