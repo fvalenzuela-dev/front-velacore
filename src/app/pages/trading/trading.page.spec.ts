@@ -162,17 +162,17 @@ describe('TradingPage', () => {
   });
 
   it('should not apply async chart data after the component is destroyed', async () => {
-    let resolveData: (...args: [TradingChartData]) => void = vi.fn();
+    let resolveData: () => void = vi.fn();
     loadBitcoinChartData.mockReturnValueOnce(
       new Promise<TradingChartData>((resolve) => {
-        resolveData = resolve;
+        resolveData = () => resolve(chartData);
       }),
     );
 
     const fixture = TestBed.createComponent(TradingPage);
     fixture.detectChanges();
     fixture.destroy();
-    resolveData(chartData);
+    resolveData();
     await fixture.whenStable();
 
     expect(chartMocks.remove).toHaveBeenCalledOnce();
