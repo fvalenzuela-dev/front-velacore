@@ -22,8 +22,14 @@ describe('App', () => {
     fixture.detectChanges();
     await fixture.whenStable();
 
-    const links = Array.from((fixture.nativeElement as HTMLElement).querySelectorAll('nav a'));
-    expect(links.map((link) => link.textContent?.trim())).toEqual(['Dashboard', 'Trading']);
-    expect(links.map((link) => link.getAttribute('href'))).toEqual(['/dashboard', '/trading']);
+    const linkLabels = Array.from(
+      (fixture.nativeElement as HTMLElement).querySelectorAll('nav a'),
+    ).map((link) => link.textContent?.trim());
+    const linkHrefs = Array.from(
+      (fixture.nativeElement as HTMLElement).querySelectorAll('nav a'),
+    ).map((link) => link.getAttribute('href'));
+
+    expect(linkLabels).toEqual(['Dashboard', 'Trading']);
+    expect(linkHrefs).toEqual(['/dashboard', '/trading']);
   });
 });
