@@ -162,7 +162,7 @@ describe('TradingPage', () => {
   });
 
   it('should not apply async chart data after the component is destroyed', async () => {
-    let resolveData: (chartDataToResolve: TradingChartData) => void = vi.fn();
+    let resolveData: (...args: [TradingChartData]) => void = vi.fn();
     loadBitcoinChartData.mockReturnValueOnce(
       new Promise<TradingChartData>((resolve) => {
         resolveData = resolve;
