@@ -25,10 +25,13 @@ describe('TradingPage', () => {
     const fixture = TestBed.createComponent(TradingPage);
     fixture.detectChanges();
 
-    const hostElement = fixture.nativeElement as HTMLElement;
-    const headings = Array.from(hostElement.querySelectorAll('h2'));
-
-    expect(headings.map((heading) => heading.textContent?.trim())).toEqual(['Trading']);
-    expect(hostElement.textContent).toContain('This section is ready for future trading workflows.');
+    expect(
+      Array.from((fixture.nativeElement as HTMLElement).querySelectorAll('h2')).map((heading) =>
+        heading.textContent?.trim(),
+      ),
+    ).toEqual(['Trading']);
+    expect((fixture.nativeElement as HTMLElement).textContent).toContain(
+      'This section is ready for future trading workflows.',
+    );
   });
 });

@@ -35,25 +35,25 @@ describe('DashboardPage', () => {
     const fixture = TestBed.createComponent(DashboardPage);
     fixture.detectChanges();
 
-    const hostElement = fixture.nativeElement as HTMLElement;
-
-    expect(hostElement.textContent).toContain('Ingresos del mes');
-    expect(hostElement.textContent).toContain('$ 82.450');
-    expect(hostElement.textContent).toContain('Clientes activos');
-    expect(hostElement.textContent).toContain('1.248');
-    expect(hostElement.textContent).toContain('Pedidos abiertos');
-    expect(hostElement.textContent).toContain('36');
-    expect(hostElement.textContent).toContain('Satisfacción');
-    expect(hostElement.textContent).toContain('97%');
+    expect((fixture.nativeElement as HTMLElement).textContent).toContain('Ingresos del mes');
+    expect((fixture.nativeElement as HTMLElement).textContent).toContain('$ 82.450');
+    expect((fixture.nativeElement as HTMLElement).textContent).toContain('Clientes activos');
+    expect((fixture.nativeElement as HTMLElement).textContent).toContain('1.248');
+    expect((fixture.nativeElement as HTMLElement).textContent).toContain('Pedidos abiertos');
+    expect((fixture.nativeElement as HTMLElement).textContent).toContain('36');
+    expect((fixture.nativeElement as HTMLElement).textContent).toContain('Satisfacción');
+    expect((fixture.nativeElement as HTMLElement).textContent).toContain('97%');
   });
 
   it('should render the reusable button showcase and disabled example', () => {
     const fixture = TestBed.createComponent(DashboardPage);
     fixture.detectChanges();
 
-    const buttons = Array.from((fixture.nativeElement as HTMLElement).querySelectorAll('button'));
-
-    expect(buttons.map((button) => button.textContent?.trim())).toEqual([
+    expect(
+      Array.from((fixture.nativeElement as HTMLElement).querySelectorAll('button')).map((button) =>
+        button.textContent?.trim(),
+      ),
+    ).toEqual([
       'Primary',
       'Secondary',
       'Success',
@@ -63,20 +63,24 @@ describe('DashboardPage', () => {
       'Neutral',
       'Disabled',
     ]);
-    expect(buttons.at(-1)?.disabled).toBe(true);
+    expect(
+      Array.from((fixture.nativeElement as HTMLElement).querySelectorAll('button')).at(-1)?.disabled,
+    ).toBe(true);
   });
 
   it('should render weekly performance bars and activity entries', () => {
     const fixture = TestBed.createComponent(DashboardPage);
     fixture.detectChanges();
 
-    const hostElement = fixture.nativeElement as HTMLElement;
-
-    expect(Array.from(hostElement.querySelectorAll('span')).some((span) => span.textContent?.trim() === 'D7')).toBe(true);
-    expect(hostElement.textContent).toContain('Objetivo comercial');
-    expect(hostElement.textContent).toContain('Nuevo contrato cerrado');
-    expect(hostElement.textContent).toContain('Alerta de stock');
-    expect(hostElement.textContent).toContain('Pago confirmado');
-    expect(hostElement.textContent).toContain('Soporte resuelto');
+    expect(
+      Array.from((fixture.nativeElement as HTMLElement).querySelectorAll('span')).some(
+        (span) => span.textContent?.trim() === 'D7',
+      ),
+    ).toBe(true);
+    expect((fixture.nativeElement as HTMLElement).textContent).toContain('Objetivo comercial');
+    expect((fixture.nativeElement as HTMLElement).textContent).toContain('Nuevo contrato cerrado');
+    expect((fixture.nativeElement as HTMLElement).textContent).toContain('Alerta de stock');
+    expect((fixture.nativeElement as HTMLElement).textContent).toContain('Pago confirmado');
+    expect((fixture.nativeElement as HTMLElement).textContent).toContain('Soporte resuelto');
   });
 });
