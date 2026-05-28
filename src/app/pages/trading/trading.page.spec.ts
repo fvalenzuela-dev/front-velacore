@@ -28,9 +28,11 @@ describe('TradingPage', () => {
     const headingTexts = Array.from(
       (fixture.nativeElement as HTMLElement).querySelectorAll('h2'),
     ).map((heading) => heading.textContent?.trim());
-    const tradingText = (fixture.nativeElement as HTMLElement).textContent ?? '';
+    const paragraphTexts = Array.from(
+      (fixture.nativeElement as HTMLElement).querySelectorAll('p'),
+    ).map((paragraph) => paragraph.textContent?.trim());
 
     expect(headingTexts).toEqual(['Trading']);
-    expect(tradingText).toContain('This section is ready for future trading workflows.');
+    expect(paragraphTexts).toContain('This section is ready for future trading workflows.');
   });
 });

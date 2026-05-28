@@ -35,16 +35,22 @@ describe('DashboardPage', () => {
     const fixture = TestBed.createComponent(DashboardPage);
     fixture.detectChanges();
 
-    const dashboardText = (fixture.nativeElement as HTMLElement).textContent ?? '';
+    const metricLabels = Array.from(
+      (fixture.nativeElement as HTMLElement).querySelectorAll('section:first-of-type article p'),
+    ).map((label) => label.textContent?.trim());
+    const metricValues = Array.from(
+      (fixture.nativeElement as HTMLElement).querySelectorAll(
+        'section:first-of-type article strong',
+      ),
+    ).map((value) => value.textContent?.trim());
 
-    expect(dashboardText).toContain('Ingresos del mes');
-    expect(dashboardText).toContain('$ 82.450');
-    expect(dashboardText).toContain('Clientes activos');
-    expect(dashboardText).toContain('1.248');
-    expect(dashboardText).toContain('Pedidos abiertos');
-    expect(dashboardText).toContain('36');
-    expect(dashboardText).toContain('Satisfacción');
-    expect(dashboardText).toContain('97%');
+    expect(metricLabels).toEqual([
+      'Ingresos del mes',
+      'Clientes activos',
+      'Pedidos abiertos',
+      'Satisfacción',
+    ]);
+    expect(metricValues).toEqual(['$ 82.450', '1.248', '36', '97%']);
   });
 
   it('should render the reusable button showcase and disabled example', () => {
@@ -78,13 +84,20 @@ describe('DashboardPage', () => {
     const spanTexts = Array.from(
       (fixture.nativeElement as HTMLElement).querySelectorAll('span'),
     ).map((span) => span.textContent?.trim());
-    const dashboardText = (fixture.nativeElement as HTMLElement).textContent ?? '';
+    const sectionHeadings = Array.from(
+      (fixture.nativeElement as HTMLElement).querySelectorAll('h2'),
+    ).map((heading) => heading.textContent?.trim());
+    const activityTitles = Array.from(
+      (fixture.nativeElement as HTMLElement).querySelectorAll('aside h3'),
+    ).map((title) => title.textContent?.trim());
 
     expect(spanTexts).toContain('D7');
-    expect(dashboardText).toContain('Objetivo comercial');
-    expect(dashboardText).toContain('Nuevo contrato cerrado');
-    expect(dashboardText).toContain('Alerta de stock');
-    expect(dashboardText).toContain('Pago confirmado');
-    expect(dashboardText).toContain('Soporte resuelto');
+    expect(sectionHeadings).toContain('Objetivo comercial');
+    expect(activityTitles).toEqual([
+      'Nuevo contrato cerrado',
+      'Alerta de stock',
+      'Pago confirmado',
+      'Soporte resuelto',
+    ]);
   });
 });
