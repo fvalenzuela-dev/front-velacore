@@ -108,15 +108,15 @@ describe('TradingPage', () => {
     fixture.detectChanges();
 
     const hostHTMLElement = fixture.nativeElement as HTMLElement;
-    const pageText = hostHTMLElement.textContent ?? '';
+    const pageHTMLTextContent = hostHTMLElement.textContent ?? '';
     const chartContainer = hostHTMLElement.querySelector(
       '[aria-label="BTC candlestick chart with volume histogram"]',
     );
 
     expect(hostHTMLElement.querySelector('h2')).toBeNull();
-    expect(pageText).not.toContain('BTC/USDT market overview');
-    expect(pageText).not.toContain('Full-page TradingView-style chart');
-    expect(pageText).not.toContain('No private API keys, accounts, or order placement are used.');
+    expect(pageHTMLTextContent).not.toContain('BTC/USDT market overview');
+    expect(pageHTMLTextContent).not.toContain('Full-page TradingView-style chart');
+    expect(pageHTMLTextContent).not.toContain('No private API keys, accounts, or order placement are used.');
     expect(chartContainer).toBeTruthy();
     expect(chartContainer?.classList.contains('h-full')).toBe(true);
     expect(chartContainer?.classList.contains('min-h-[calc(100vh-4rem)]')).toBe(true);
@@ -157,14 +157,19 @@ describe('TradingPage', () => {
     await fixture.whenStable();
     fixture.detectChanges();
 
-    const pageText = ((fixture.nativeElement as HTMLElement).textContent ?? '').trim();
+    const pageHTMLTextContent = ((fixture.nativeElement as HTMLElement).textContent ?? '').trim();
 
-    expect(pageText).not.toContain('Static fallback data');
-    expect(pageText).toContain('Binance data could not be loaded');
+    expect(pageHTMLTextContent).not.toContain('Static fallback data');
+    expect(pageHTMLTextContent).toContain('Binance data could not be loaded');
   });
 
   it('should not apply async chart data after the component is destroyed', async () => {
-    let resolveData!: (_chartData: TradingChartData) => void;
+    const resolverType = (chartDataToResolve: TradingChartData): void => {
+      if (!chartDataToResolve) {
+        throw new Error('Missing chart data');
+      }
+    };
+    let resolveData: typeof resolverType = resolverType;
     loadBitcoinChartData.mockReturnValueOnce(
       new Promise<TradingChartData>((resolve) => {
         resolveData = resolve;
