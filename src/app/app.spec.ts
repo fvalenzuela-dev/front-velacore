@@ -22,20 +22,20 @@ describe('App', () => {
     fixture.detectChanges();
     await fixture.whenStable();
 
-    const nativeElement = fixture.nativeElement as HTMLElement;
-    const shell = nativeElement.querySelector('main');
-    const header = nativeElement.querySelector('header');
-    const menu = nativeElement.querySelector('nav[aria-label="Main navigation"]');
-    const trigger = nativeElement.querySelector('nav > button');
-    const floatingPanel = nativeElement.querySelector('#main-navigation-menu');
-    const topBar = nativeElement.querySelector('[aria-label="Top bar"]');
-    const leftBar = nativeElement.querySelector('[aria-label="Left tools bar"]');
-    const rightBar = nativeElement.querySelector('[aria-label="Right tools bar"]');
-    const contentGrid = nativeElement.querySelector('main > section');
-    const linkLabels = Array.from(nativeElement.querySelectorAll('nav a')).map((link) =>
+    const hostElement = fixture.nativeElement as HTMLElement;
+    const shell = hostElement.querySelector('main');
+    const header = hostElement.querySelector('header');
+    const menu = hostElement.querySelector('nav[aria-label="Main navigation"]');
+    const trigger = hostElement.querySelector('nav > button');
+    const floatingPanel = hostElement.querySelector('#main-navigation-menu');
+    const topBar = hostElement.querySelector('[aria-label="Top bar"]');
+    const leftBar = hostElement.querySelector('[aria-label="Left tools bar"]');
+    const rightBar = hostElement.querySelector('[aria-label="Right tools bar"]');
+    const contentGrid = hostElement.querySelector('main > section');
+    const linkLabels = Array.from(hostElement.querySelectorAll('nav a')).map((link) =>
       link.textContent?.trim(),
     );
-    const linkHrefs = Array.from(nativeElement.querySelectorAll('nav a')).map((link) =>
+    const linkHrefs = Array.from(hostElement.querySelectorAll('nav a')).map((link) =>
       link.getAttribute('href'),
     );
 

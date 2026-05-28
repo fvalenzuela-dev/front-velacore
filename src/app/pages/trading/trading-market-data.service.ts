@@ -80,7 +80,7 @@ export class TradingMarketDataService {
 
   getFallbackChartData(): TradingChartData {
     const baseTime = Date.UTC(2026, 0, 1) / 1000;
-    const fallbackCandles: Array<Omit<CandlestickData, 'time'>> = [
+    const fallbackCandles: Omit<CandlestickData, 'time'>[] = [
       { open: 93450, high: 96120, low: 92140, close: 95520 },
       { open: 95520, high: 97280, low: 94890, close: 96740 },
       { open: 96740, high: 98210, low: 95670, close: 96110 },

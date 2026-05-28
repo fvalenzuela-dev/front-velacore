@@ -12,8 +12,6 @@ import {
   ColorType,
   HistogramSeries,
   createChart,
-  type CandlestickData,
-  type HistogramData,
   type IChartApi,
   type ISeriesApi,
 } from 'lightweight-charts';
@@ -108,7 +106,7 @@ export class TradingPage implements AfterViewInit, OnDestroy {
     this.resizeObserver = new ResizeObserver((entries) => {
       const entry = entries[0];
 
-      if (!entry || !this.chart) {
+      if (!this.chart) {
         return;
       }
 
@@ -125,8 +123,8 @@ export class TradingPage implements AfterViewInit, OnDestroy {
 
     this.loadError = data.source === 'fallback';
 
-    this.candleSeries?.setData(data.candles as CandlestickData[]);
-    this.volumeSeries?.setData(data.volumes as HistogramData[]);
+    this.candleSeries?.setData(data.candles);
+    this.volumeSeries?.setData(data.volumes);
     this.chart?.timeScale().fitContent();
     this.changeDetector.detectChanges();
   }

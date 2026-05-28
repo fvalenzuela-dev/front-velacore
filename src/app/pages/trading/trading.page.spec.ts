@@ -40,13 +40,19 @@ vi.mock('lightweight-charts', () => ({
 }));
 
 class ResizeObserverMock {
-  constructor(private readonly callback: ResizeObserverCallback) {}
+  static current?: ResizeObserverMock;
 
-  observe = chartMocks.observe;
-  disconnect = chartMocks.disconnect;
+  private readonly observerCallback: ResizeObserverCallback;
+  readonly observe = chartMocks.observe;
+  readonly disconnect = chartMocks.disconnect;
+
+  constructor(observerCallback: ResizeObserverCallback) {
+    this.observerCallback = observerCallback;
+    ResizeObserverMock.current = this;
+  }
 
   trigger(width: number, height: number): void {
-    this.callback(
+    this.observerCallback(
       [{ contentRect: { width, height } } as ResizeObserverEntry],
       this as unknown as ResizeObserver,
     );
@@ -61,7 +67,6 @@ const chartData: TradingChartData = {
 
 describe('TradingPage', () => {
   let loadBitcoinChartData: ReturnType<typeof vi.fn>;
-  let resizeObserverInstance: ResizeObserverMock | undefined;
 
   beforeEach(async () => {
     chartMocks.addSeries.mockClear();
@@ -77,18 +82,10 @@ describe('TradingPage', () => {
     chartMocks.disconnect.mockClear();
     chartMocks.createChart.mockClear();
     chartMocks.priceScale.mockClear();
-    resizeObserverInstance = undefined;
+    ResizeObserverMock.current = undefined;
     loadBitcoinChartData = vi.fn().mockResolvedValue(chartData);
 
-    vi.stubGlobal(
-      'ResizeObserver',
-      class extends ResizeObserverMock {
-        constructor(callback: ResizeObserverCallback) {
-          super(callback);
-          resizeObserverInstance = this;
-        }
-      },
-    );
+    vi.stubGlobal('ResizeObserver', ResizeObserverMock);
 
     await TestBed.configureTestingModule({
       imports: [TradingPage],
@@ -110,18 +107,16 @@ describe('TradingPage', () => {
     const fixture = TestBed.createComponent(TradingPage);
     fixture.detectChanges();
 
-    const nativeElement = fixture.nativeElement as HTMLElement;
-
-    const chartContainer = nativeElement.querySelector(
+    const hostElement = fixture.nativeElement as HTMLElement;
+    const pageText = hostElement.textContent ?? '';
+    const chartContainer = hostElement.querySelector(
       '[aria-label="BTC candlestick chart with volume histogram"]',
     );
 
-    expect(nativeElement.querySelector('h2')).toBeNull();
-    expect(nativeElement.textContent).not.toContain('BTC/USDT market overview');
-    expect(nativeElement.textContent).not.toContain('Full-page TradingView-style chart');
-    expect(nativeElement.textContent).not.toContain(
-      'No private API keys, accounts, or order placement are used.',
-    );
+    expect(hostElement.querySelector('h2')).toBeNull();
+    expect(pageText).not.toContain('BTC/USDT market overview');
+    expect(pageText).not.toContain('Full-page TradingView-style chart');
+    expect(pageText).not.toContain('No private API keys, accounts, or order placement are used.');
     expect(chartContainer).toBeTruthy();
     expect(chartContainer?.classList.contains('h-full')).toBe(true);
     expect(chartContainer?.classList.contains('min-h-[calc(100vh-4rem)]')).toBe(true);
@@ -146,7 +141,7 @@ describe('TradingPage', () => {
     fixture.detectChanges();
     await fixture.whenStable();
 
-    resizeObserverInstance?.trigger(888.8, 444.4);
+    ResizeObserverMock.current?.trigger(888.8, 444.4);
     fixture.destroy();
 
     expect(chartMocks.observe).toHaveBeenCalledOnce();
@@ -162,18 +157,18 @@ describe('TradingPage', () => {
     await fixture.whenStable();
     fixture.detectChanges();
 
-    expect((fixture.nativeElement as HTMLElement).textContent).not.toContain(
-      'Static fallback data',
-    );
-    expect((fixture.nativeElement as HTMLElement).textContent).toContain(
-      'Binance data could not be loaded',
-    );
+    const pageText = ((fixture.nativeElement as HTMLElement).textContent ?? '').trim();
+
+    expect(pageText).not.toContain('Static fallback data');
+    expect(pageText).toContain('Binance data could not be loaded');
   });
 
   it('should not apply async chart data after the component is destroyed', async () => {
-    let resolveData: (data: TradingChartData) => void = () => undefined;
+    let resolveData!: (data: TradingChartData) => void;
     loadBitcoinChartData.mockReturnValueOnce(
-      new Promise<TradingChartData>((resolve) => (resolveData = resolve)),
+      new Promise<TradingChartData>((resolve) => {
+        resolveData = resolve;
+      }),
     );
 
     const fixture = TestBed.createComponent(TradingPage);
