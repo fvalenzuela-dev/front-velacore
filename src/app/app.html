@@ -6,9 +6,19 @@
         <h1 class="mt-2 text-3xl font-semibold tracking-tight text-foreground sm:text-4xl">Panel de control</h1>
         <p class="mt-2 max-w-2xl text-sm text-muted sm:text-base">Vista general de ventas, operaciones y actividad reciente para seguir el pulso del negocio.</p>
       </div>
-      <div class="flex items-center gap-3 rounded-2xl border border-info/20 bg-info/10 px-4 py-3 text-sm text-info">
-        <span class="h-2.5 w-2.5 rounded-full bg-success shadow-[0_0_18px_var(--vc-success)]"></span>
-        Sistema operativo
+      <div class="flex flex-wrap items-center gap-3">
+        <button
+          type="button"
+          class="inline-flex min-h-11 items-center justify-center rounded-2xl border border-border bg-surface-elevated px-4 py-2 text-sm font-semibold text-foreground shadow-lg shadow-primary/10 transition hover:bg-muted/10 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+          [attr.aria-pressed]="isDarkTheme()"
+          (click)="toggleTheme()"
+        >
+          {{ isDarkTheme() ? 'Modo claro' : 'Modo oscuro' }}
+        </button>
+        <div class="flex items-center gap-3 rounded-2xl border border-info/20 bg-info/10 px-4 py-3 text-sm text-info">
+          <span class="h-2.5 w-2.5 rounded-full bg-success shadow-[0_0_18px_var(--vc-success)]"></span>
+          Sistema operativo
+        </div>
       </div>
     </header>
 
