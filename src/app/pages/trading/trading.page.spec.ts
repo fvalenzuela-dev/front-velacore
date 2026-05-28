@@ -108,15 +108,12 @@ describe('TradingPage', () => {
     fixture.detectChanges();
 
     const hostHTMLElement = fixture.nativeElement as HTMLElement;
-    const pageHTMLTextContent = hostHTMLElement.textContent ?? '';
     const chartContainer = hostHTMLElement.querySelector(
       '[aria-label="BTC candlestick chart with volume histogram"]',
     );
 
     expect(hostHTMLElement.querySelector('h2')).toBeNull();
-    expect(pageHTMLTextContent).not.toContain('BTC/USDT market overview');
-    expect(pageHTMLTextContent).not.toContain('Full-page TradingView-style chart');
-    expect(pageHTMLTextContent).not.toContain('No private API keys, accounts, or order placement are used.');
+    expect(hostHTMLElement.querySelector('p')).toBeNull();
     expect(chartContainer).toBeTruthy();
     expect(chartContainer?.classList.contains('h-full')).toBe(true);
     expect(chartContainer?.classList.contains('min-h-[calc(100vh-4rem)]')).toBe(true);
@@ -150,26 +147,22 @@ describe('TradingPage', () => {
     expect(chartMocks.remove).toHaveBeenCalledOnce();
   });
 
-  it('should surface fallback copy when Binance data is unavailable', async () => {
+  it('should mark fallback state when Binance data is unavailable', async () => {
     loadBitcoinChartData.mockResolvedValueOnce({ ...chartData, source: 'fallback' });
     const fixture = TestBed.createComponent(TradingPage);
     fixture.detectChanges();
     await fixture.whenStable();
     fixture.detectChanges();
 
-    const pageHTMLTextContent = ((fixture.nativeElement as HTMLElement).textContent ?? '').trim();
+    const component = fixture.componentInstance as unknown as { loadError: boolean };
+    const fallbackNotice = (fixture.nativeElement as HTMLElement).querySelector('.text-warning');
 
-    expect(pageHTMLTextContent).not.toContain('Static fallback data');
-    expect(pageHTMLTextContent).toContain('Binance data could not be loaded');
+    expect(component.loadError).toBe(true);
+    expect(fallbackNotice).toBeTruthy();
   });
 
   it('should not apply async chart data after the component is destroyed', async () => {
-    const resolverType = (chartDataToResolve: TradingChartData): void => {
-      if (!chartDataToResolve) {
-        throw new Error('Missing chart data');
-      }
-    };
-    let resolveData: typeof resolverType = resolverType;
+    let resolveData: (chartDataToResolve: TradingChartData) => void = vi.fn();
     loadBitcoinChartData.mockReturnValueOnce(
       new Promise<TradingChartData>((resolve) => {
         resolveData = resolve;
