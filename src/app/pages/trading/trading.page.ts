@@ -4,4 +4,6 @@ import { Component } from '@angular/core';
   selector: 'app-trading-page',
   templateUrl: './trading.page.html',
 })
-export class TradingPage {}
+export class TradingPage {
+  protected readonly pageTitle = 'Trading';
+}
