@@ -21,14 +21,20 @@ describe('Button', () => {
     const fixture = TestBed.createComponent(ButtonHost);
     fixture.detectChanges();
 
-    expect((fixture.nativeElement as HTMLElement).querySelector('button')?.textContent).toContain('Delete');
+    const buttonText =
+      (fixture.nativeElement as HTMLElement).querySelector('button')?.textContent ?? '';
+
+    expect(buttonText).toContain('Delete');
   });
 
   it('should apply the selected variant classes', () => {
     const fixture = TestBed.createComponent(ButtonHost);
     fixture.detectChanges();
 
-    expect((fixture.nativeElement as HTMLElement).querySelector('button')?.className).toContain('bg-danger');
+    const buttonClassName =
+      (fixture.nativeElement as HTMLElement).querySelector('button')?.className ?? '';
+
+    expect(buttonClassName).toContain('bg-danger');
   });
 
   it('should support the disabled state', () => {
@@ -36,6 +42,10 @@ describe('Button', () => {
     fixture.componentInstance.isDisabled = true;
     fixture.detectChanges();
 
-    expect((fixture.nativeElement as HTMLElement).querySelector('button')?.disabled).toBe(true);
+    const isButtonDisabled = (fixture.nativeElement as HTMLElement).querySelector(
+      'button',
+    )?.disabled;
+
+    expect(isButtonDisabled).toBe(true);
   });
 });

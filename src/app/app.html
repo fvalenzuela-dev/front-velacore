@@ -1,125 +1,72 @@
 <main class="min-h-screen bg-background text-foreground">
-  <section class="mx-auto flex w-full max-w-7xl flex-col gap-8 px-5 py-6 sm:px-8 lg:px-10">
-    <header class="flex flex-col gap-4 rounded-3xl border border-border bg-surface p-5 shadow-2xl shadow-primary/20 backdrop-blur md:flex-row md:items-center md:justify-between">
-      <div>
-        <p class="text-sm font-medium uppercase tracking-[0.35em] text-primary">{{ title }}</p>
-        <h1 class="mt-2 text-3xl font-semibold tracking-tight text-foreground sm:text-4xl">Panel de control</h1>
-        <p class="mt-2 max-w-2xl text-sm text-muted sm:text-base">Vista general de ventas, operaciones y actividad reciente para seguir el pulso del negocio.</p>
-      </div>
-      <div class="flex flex-wrap items-center gap-3">
-        <button
-          type="button"
-          class="inline-flex size-11 items-center justify-center rounded-2xl border border-border bg-surface-elevated text-foreground shadow-lg shadow-primary/10 transition hover:bg-muted/10 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
-          [attr.aria-label]="isDarkTheme() ? 'Cambiar a modo claro' : 'Cambiar a modo oscuro'"
-          [attr.aria-pressed]="isDarkTheme()"
-          (click)="toggleTheme()"
-        >
-          @if (isDarkTheme()) {
-            <svg class="size-5" aria-hidden="true" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M12 3v2.25M12 18.75V21M4.97 4.97l1.59 1.59M17.44 17.44l1.59 1.59M3 12h2.25M18.75 12H21M4.97 19.03l1.59-1.59M17.44 6.56l1.59-1.59" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" />
-              <circle cx="12" cy="12" r="4.25" stroke="currentColor" stroke-width="1.8" />
-            </svg>
-          } @else {
-            <svg class="size-5" aria-hidden="true" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M20.25 14.15A7.5 7.5 0 0 1 9.85 3.75a8.5 8.5 0 1 0 10.4 10.4Z" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />
-            </svg>
-          }
-        </button>
-        <div class="flex items-center gap-3 rounded-2xl border border-info/20 bg-info/10 px-4 py-3 text-sm text-info">
-          <span class="h-2.5 w-2.5 rounded-full bg-success shadow-[0_0_18px_var(--vc-success)]"></span>
-          Sistema operativo
-        </div>
-      </div>
-    </header>
-
-    <section class="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-      <article class="rounded-3xl border border-border bg-surface p-5">
-        <p class="text-sm text-muted">Ingresos del mes</p>
-        <strong class="mt-3 block text-3xl font-semibold text-foreground">$ 82.450</strong>
-        <span class="mt-4 inline-flex rounded-full bg-success/10 px-3 py-1 text-sm font-medium text-success">+12,8% vs. abril</span>
-      </article>
-      <article class="rounded-3xl border border-border bg-surface p-5">
-        <p class="text-sm text-muted">Clientes activos</p>
-        <strong class="mt-3 block text-3xl font-semibold text-foreground">1.248</strong>
-        <span class="mt-4 inline-flex rounded-full bg-info/10 px-3 py-1 text-sm font-medium text-info">92 nuevos</span>
-      </article>
-      <article class="rounded-3xl border border-border bg-surface p-5">
-        <p class="text-sm text-muted">Pedidos abiertos</p>
-        <strong class="mt-3 block text-3xl font-semibold text-foreground">36</strong>
-        <span class="mt-4 inline-flex rounded-full bg-warning/10 px-3 py-1 text-sm font-medium text-warning">8 requieren revisión</span>
-      </article>
-      <article class="rounded-3xl border border-border bg-surface p-5">
-        <p class="text-sm text-muted">Satisfacción</p>
-        <strong class="mt-3 block text-3xl font-semibold text-foreground">97%</strong>
-        <span class="mt-4 inline-flex rounded-full bg-accent/10 px-3 py-1 text-sm font-medium text-accent">NPS alto</span>
-      </article>
-    </section>
-
-    <section class="rounded-3xl border border-border bg-surface p-5 sm:p-6">
-      <div class="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+  <section class="mx-auto flex w-full max-w-7xl flex-col gap-6 px-5 py-6 sm:px-8 lg:flex-row lg:px-10">
+    <aside class="lg:sticky lg:top-6 lg:h-[calc(100vh-3rem)] lg:w-72 lg:shrink-0" aria-label="Main navigation">
+      <nav class="flex h-full flex-col gap-5 rounded-3xl border border-border bg-surface p-5 shadow-2xl shadow-primary/20">
         <div>
-          <p class="text-sm font-medium text-primary">Sistema UI</p>
-          <h2 class="mt-1 text-2xl font-semibold text-foreground">Botones reutilizables</h2>
+          <p class="text-sm font-medium uppercase tracking-[0.35em] text-primary">{{ title }}</p>
+          <p class="mt-2 text-sm text-muted">Workspace navigation</p>
         </div>
-        <p class="max-w-xl text-sm leading-6 text-muted">Variantes disponibles para acciones principales, estados de operación y controles neutros.</p>
-      </div>
 
-      <div class="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-        @for (button of buttonShowcase; track button.variant) {
-          <app-button [variant]="button.variant">{{ button.label }}</app-button>
-        }
-        <app-button variant="neutral" [disabled]="true">Disabled</app-button>
-      </div>
-    </section>
-
-    <section class="grid gap-6 lg:grid-cols-[1.15fr_0.85fr]">
-      <article class="rounded-3xl border border-border bg-surface-elevated p-5 shadow-2xl shadow-primary/20 sm:p-6">
-        <div class="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
-          <div>
-            <p class="text-sm font-medium text-primary">Rendimiento semanal</p>
-            <h2 class="mt-1 text-2xl font-semibold text-foreground">Objetivo comercial</h2>
+        <details class="group rounded-2xl border border-border bg-surface-elevated p-2" open>
+          <summary class="flex cursor-pointer list-none items-center justify-between rounded-xl px-3 py-2 text-sm font-semibold text-foreground transition hover:bg-muted/10">
+            Main menu
+            <span class="text-muted transition group-open:rotate-180" aria-hidden="true">⌄</span>
+          </summary>
+          <div class="mt-2 grid gap-2">
+            <a
+              routerLink="/dashboard"
+              routerLinkActive="border-primary bg-primary/10 text-primary shadow-lg shadow-primary/10"
+              [routerLinkActiveOptions]="{ exact: true }"
+              class="rounded-xl border border-transparent px-3 py-2 text-sm font-medium text-muted transition hover:border-border hover:bg-muted/10 hover:text-foreground"
+            >
+              Dashboard
+            </a>
+            <a
+              routerLink="/trading"
+              routerLinkActive="border-primary bg-primary/10 text-primary shadow-lg shadow-primary/10"
+              class="rounded-xl border border-transparent px-3 py-2 text-sm font-medium text-muted transition hover:border-border hover:bg-muted/10 hover:text-foreground"
+            >
+              Trading
+            </a>
           </div>
-          <p class="text-sm text-muted">72% del objetivo mensual completado</p>
-        </div>
+        </details>
+      </nav>
+    </aside>
 
-        <div class="mt-8 flex h-72 items-end gap-3 rounded-3xl bg-linear-to-b from-[var(--vc-gradient-from)] via-[var(--vc-gradient-via)] to-[var(--vc-gradient-to)] p-4 sm:gap-5 sm:p-6">
-          @for (bar of [42, 58, 47, 76, 64, 88, 72]; track $index) {
-            <div class="flex flex-1 flex-col items-center gap-3">
-              <div class="flex w-full items-end rounded-full bg-background/40 p-1" style="height: 13rem">
-                <div class="w-full rounded-full bg-linear-to-t from-primary via-info to-success" [style.height.%]="bar"></div>
-              </div>
-              <span class="text-xs font-medium text-muted">D{{ $index + 1 }}</span>
-            </div>
-          }
+    <section class="flex min-w-0 flex-1 flex-col gap-8">
+      <header class="flex flex-col gap-4 rounded-3xl border border-border bg-surface p-5 shadow-2xl shadow-primary/20 backdrop-blur md:flex-row md:items-center md:justify-between">
+        <div>
+          <p class="text-sm font-medium uppercase tracking-[0.35em] text-primary">{{ title }}</p>
+          <h1 class="mt-2 text-3xl font-semibold tracking-tight text-foreground sm:text-4xl">Application shell</h1>
+          <p class="mt-2 max-w-2xl text-sm text-muted sm:text-base">Use the sidebar to move between Velacore sections.</p>
         </div>
-      </article>
-
-      <aside class="rounded-3xl border border-border bg-surface p-5 sm:p-6">
-        <div class="flex items-center justify-between gap-4">
-          <div>
-            <p class="text-sm font-medium text-primary">Actividad</p>
-            <h2 class="mt-1 text-2xl font-semibold text-foreground">Últimos movimientos</h2>
+        <div class="flex flex-wrap items-center gap-3">
+          <button
+            type="button"
+            class="inline-flex size-11 items-center justify-center rounded-2xl border border-border bg-surface-elevated text-foreground shadow-lg shadow-primary/10 transition hover:bg-muted/10 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+            [attr.aria-label]="isDarkTheme() ? 'Cambiar a modo claro' : 'Cambiar a modo oscuro'"
+            [attr.aria-pressed]="isDarkTheme()"
+            (click)="toggleTheme()"
+          >
+            @if (isDarkTheme()) {
+              <svg class="size-5" aria-hidden="true" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M12 3v2.25M12 18.75V21M4.97 4.97l1.59 1.59M17.44 17.44l1.59 1.59M3 12h2.25M18.75 12H21M4.97 19.03l1.59-1.59M17.44 6.56l1.59-1.59" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" />
+                <circle cx="12" cy="12" r="4.25" stroke="currentColor" stroke-width="1.8" />
+              </svg>
+            } @else {
+              <svg class="size-5" aria-hidden="true" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M20.25 14.15A7.5 7.5 0 0 1 9.85 3.75a8.5 8.5 0 1 0 10.4 10.4Z" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />
+              </svg>
+            }
+          </button>
+          <div class="flex items-center gap-3 rounded-2xl border border-info/20 bg-info/10 px-4 py-3 text-sm text-info">
+            <span class="h-2.5 w-2.5 rounded-full bg-success shadow-[0_0_18px_var(--vc-success)]"></span>
+            Sistema operativo
           </div>
-          <span class="rounded-full bg-muted/10 px-3 py-1 text-xs font-medium text-muted">Hoy</span>
         </div>
+      </header>
 
-        <div class="mt-6 space-y-4">
-          @for (item of [
-            { title: 'Nuevo contrato cerrado', detail: 'Plan Enterprise para cuenta Patagonia Norte', accent: 'bg-success' },
-            { title: 'Alerta de stock', detail: 'Sucursal Córdoba quedó bajo el mínimo operativo', accent: 'bg-warning' },
-            { title: 'Pago confirmado', detail: 'Factura VC-2048 registrada correctamente', accent: 'bg-info' },
-            { title: 'Soporte resuelto', detail: 'Ticket de integración marcado como completado', accent: 'bg-accent' },
-          ]; track item.title) {
-            <article class="flex gap-4 rounded-2xl border border-border bg-surface-elevated p-4">
-              <span class="mt-1 h-3 w-3 shrink-0 rounded-full {{ item.accent }}"></span>
-              <div>
-                <h3 class="font-medium text-foreground">{{ item.title }}</h3>
-                <p class="mt-1 text-sm leading-6 text-muted">{{ item.detail }}</p>
-              </div>
-            </article>
-          }
-        </div>
-      </aside>
+      <router-outlet />
     </section>
   </section>
 </main>

@@ -13,7 +13,10 @@ describe('ThemeService', () => {
     document.documentElement.classList.remove('dark', 'light');
     TestBed.resetTestingModule();
 
-    vi.stubGlobal('matchMedia', vi.fn(() => ({ matches: prefersDark })));
+    vi.stubGlobal(
+      'matchMedia',
+      vi.fn(() => ({ matches: prefersDark })),
+    );
     vi.stubGlobal('localStorage', {
       getItem: vi.fn((key: string) => storage.get(key) ?? null),
       setItem: vi.fn((key: string, value: string) => storage.set(key, value)),
@@ -29,10 +32,12 @@ describe('ThemeService', () => {
     storage.set(storageKey, 'dark');
 
     const service = TestBed.inject(ThemeService);
+    const hasDarkClass = document.documentElement.classList.contains('dark');
+    const hasLightClass = document.documentElement.classList.contains('light');
 
     expect(service.currentTheme()).toBe('dark');
-    expect(document.documentElement.classList.contains('dark')).toBe(true);
-    expect(document.documentElement.classList.contains('light')).toBe(false);
+    expect(hasDarkClass).toBe(true);
+    expect(hasLightClass).toBe(false);
   });
 
   it('should toggle the theme and persist the selection', () => {
@@ -41,24 +46,27 @@ describe('ThemeService', () => {
     expect(service.currentTheme()).toBe('light');
 
     service.toggleTheme();
+    const hasDarkClass = document.documentElement.classList.contains('dark');
 
     expect(service.currentTheme()).toBe('dark');
     expect(storage.get(storageKey)).toBe('dark');
-    expect(document.documentElement.classList.contains('dark')).toBe(true);
+    expect(hasDarkClass).toBe(true);
 
     service.toggleTheme();
+    const hasLightClass = document.documentElement.classList.contains('light');
 
     expect(service.currentTheme()).toBe('light');
     expect(storage.get(storageKey)).toBe('light');
-    expect(document.documentElement.classList.contains('light')).toBe(true);
+    expect(hasLightClass).toBe(true);
   });
 
   it('should use the system preference when no stored theme exists', () => {
     prefersDark = true;
 
     const service = TestBed.inject(ThemeService);
+    const hasDarkClass = document.documentElement.classList.contains('dark');
 
     expect(service.currentTheme()).toBe('dark');
-    expect(document.documentElement.classList.contains('dark')).toBe(true);
+    expect(hasDarkClass).toBe(true);
   });
 });

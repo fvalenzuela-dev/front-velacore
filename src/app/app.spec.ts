@@ -1,10 +1,13 @@
 import { TestBed } from '@angular/core/testing';
+import { provideRouter } from '@angular/router';
 import { App } from './app';
+import { routes } from './app.routes';
 
 describe('App', () => {
   beforeEach(async () => {
     await TestBed.configureTestingModule({
       imports: [App],
+      providers: [provideRouter(routes)],
     }).compileComponents();
   });
 
@@ -14,10 +17,19 @@ describe('App', () => {
     expect(app).toBeTruthy();
   });
 
-  it('should render the dashboard heading', async () => {
+  it('should render the sidebar navigation links', async () => {
     const fixture = TestBed.createComponent(App);
     fixture.detectChanges();
     await fixture.whenStable();
-    expect((fixture.nativeElement as HTMLElement).querySelector('h1')?.textContent).toContain('Panel de control');
+
+    const linkLabels = Array.from(
+      (fixture.nativeElement as HTMLElement).querySelectorAll('nav a'),
+    ).map((link) => link.textContent?.trim());
+    const linkHrefs = Array.from(
+      (fixture.nativeElement as HTMLElement).querySelectorAll('nav a'),
+    ).map((link) => link.getAttribute('href'));
+
+    expect(linkLabels).toEqual(['Dashboard', 'Trading']);
+    expect(linkHrefs).toEqual(['/dashboard', '/trading']);
   });
 });
