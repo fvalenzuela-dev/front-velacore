@@ -1,18 +1,42 @@
-<main class="min-h-screen bg-background text-foreground">
-  <section class="mx-auto flex w-full max-w-7xl flex-col gap-6 px-5 py-6 sm:px-8 lg:flex-row lg:px-10">
-    <aside class="lg:sticky lg:top-6 lg:h-[calc(100vh-3rem)] lg:w-72 lg:shrink-0" aria-label="Main navigation">
-      <nav class="flex h-full flex-col gap-5 rounded-3xl border border-border bg-surface p-5 shadow-2xl shadow-primary/20">
-        <div>
-          <p class="text-sm font-medium uppercase tracking-[0.35em] text-primary">{{ title }}</p>
-          <p class="mt-2 text-sm text-muted">Workspace navigation</p>
-        </div>
+<main class="grid min-h-screen grid-rows-[4rem_1fr] bg-background text-foreground">
+  <header
+    class="relative z-50 flex items-center border-border border-b bg-surface/95 backdrop-blur"
+  >
+    <nav
+      class="group/menu relative flex h-full w-16 items-center justify-center border-border border-r"
+      aria-label="Main navigation"
+      data-navigation-menu
+    >
+      <button
+        type="button"
+        class="inline-flex size-10 items-center justify-center rounded-2xl border border-border bg-surface-elevated text-sm font-semibold text-primary shadow-lg shadow-primary/10 transition hover:bg-muted/10 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+        aria-label="Open main navigation menu"
+        [attr.aria-expanded]="isMenuOpen"
+        aria-controls="main-navigation-menu"
+        (click)="toggleMenu()"
+      >
+        VC
+      </button>
 
-        <details class="group rounded-2xl border border-border bg-surface-elevated p-2" open>
-          <summary class="flex cursor-pointer list-none items-center justify-between rounded-xl px-3 py-2 text-sm font-semibold text-foreground transition hover:bg-muted/10">
-            Main menu
-            <span class="text-muted transition group-open:rotate-180" aria-hidden="true">⌄</span>
-          </summary>
-          <div class="mt-2 grid gap-2">
+      <div
+        id="main-navigation-menu"
+        class="absolute top-14 left-2 w-72 translate-y-2 opacity-0 transition duration-200"
+        [class.pointer-events-auto]="isMenuOpen"
+        [class.pointer-events-none]="!isMenuOpen"
+        [class.translate-y-0]="isMenuOpen"
+        [class.opacity-100]="isMenuOpen"
+      >
+        <div
+          class="rounded-3xl border border-border bg-surface/95 p-4 shadow-2xl shadow-primary/20 backdrop-blur"
+        >
+          <div class="mb-4">
+            <p class="text-sm font-medium uppercase tracking-[0.35em] text-primary">
+              {{ title }}
+            </p>
+            <p class="mt-2 text-sm text-muted">Workspace navigation</p>
+          </div>
+
+          <div class="grid gap-2">
             <a
               routerLink="/dashboard"
               routerLinkActive="border-primary bg-primary/10 text-primary shadow-lg shadow-primary/10"
@@ -29,44 +53,65 @@
               Trading
             </a>
           </div>
-        </details>
-      </nav>
-    </aside>
 
-    <section class="flex min-w-0 flex-1 flex-col gap-8">
-      <header class="flex flex-col gap-4 rounded-3xl border border-border bg-surface p-5 shadow-2xl shadow-primary/20 backdrop-blur md:flex-row md:items-center md:justify-between">
-        <div>
-          <p class="text-sm font-medium uppercase tracking-[0.35em] text-primary">{{ title }}</p>
-          <h1 class="mt-2 text-3xl font-semibold tracking-tight text-foreground sm:text-4xl">Application shell</h1>
-          <p class="mt-2 max-w-2xl text-sm text-muted sm:text-base">Use the sidebar to move between Velacore sections.</p>
-        </div>
-        <div class="flex flex-wrap items-center gap-3">
-          <button
-            type="button"
-            class="inline-flex size-11 items-center justify-center rounded-2xl border border-border bg-surface-elevated text-foreground shadow-lg shadow-primary/10 transition hover:bg-muted/10 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
-            [attr.aria-label]="isDarkTheme() ? 'Cambiar a modo claro' : 'Cambiar a modo oscuro'"
-            [attr.aria-pressed]="isDarkTheme()"
-            (click)="toggleTheme()"
-          >
-            @if (isDarkTheme()) {
-              <svg class="size-5" aria-hidden="true" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M12 3v2.25M12 18.75V21M4.97 4.97l1.59 1.59M17.44 17.44l1.59 1.59M3 12h2.25M18.75 12H21M4.97 19.03l1.59-1.59M17.44 6.56l1.59-1.59" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" />
-                <circle cx="12" cy="12" r="4.25" stroke="currentColor" stroke-width="1.8" />
-              </svg>
-            } @else {
-              <svg class="size-5" aria-hidden="true" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M20.25 14.15A7.5 7.5 0 0 1 9.85 3.75a8.5 8.5 0 1 0 10.4 10.4Z" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />
-              </svg>
-            }
-          </button>
-          <div class="flex items-center gap-3 rounded-2xl border border-info/20 bg-info/10 px-4 py-3 text-sm text-info">
-            <span class="h-2.5 w-2.5 rounded-full bg-success shadow-[0_0_18px_var(--vc-success)]"></span>
-            Sistema operativo
+          <div class="mt-4 border-t border-border pt-4">
+            <button
+              type="button"
+              class="inline-flex w-full items-center justify-between rounded-2xl border border-border bg-surface-elevated px-4 py-3 text-sm text-foreground shadow-lg shadow-primary/10 transition hover:bg-muted/10 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+              [attr.aria-label]="isDarkTheme() ? 'Cambiar a modo claro' : 'Cambiar a modo oscuro'"
+              [attr.aria-pressed]="isDarkTheme()"
+              (click)="toggleTheme()"
+            >
+              <span>Theme</span>
+              @if (isDarkTheme()) {
+                <svg
+                  class="size-5"
+                  aria-hidden="true"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  xmlns="http://www.w3.org/2000/svg"
+                >
+                  <path
+                    d="M12 3v2.25M12 18.75V21M4.97 4.97l1.59 1.59M17.44 17.44l1.59 1.59M3 12h2.25M18.75 12H21M4.97 19.03l1.59-1.59M17.44 6.56l1.59-1.59"
+                    stroke="currentColor"
+                    stroke-width="1.8"
+                    stroke-linecap="round"
+                  />
+                  <circle cx="12" cy="12" r="4.25" stroke="currentColor" stroke-width="1.8" />
+                </svg>
+              } @else {
+                <svg
+                  class="size-5"
+                  aria-hidden="true"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  xmlns="http://www.w3.org/2000/svg"
+                >
+                  <path
+                    d="M20.25 14.15A7.5 7.5 0 0 1 9.85 3.75a8.5 8.5 0 1 0 10.4 10.4Z"
+                    stroke="currentColor"
+                    stroke-width="1.8"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  />
+                </svg>
+              }
+            </button>
           </div>
         </div>
-      </header>
+      </div>
+    </nav>
 
+    <div class="h-full flex-1" aria-label="Top bar"></div>
+  </header>
+
+  <section class="grid min-h-0 grid-cols-[4rem_1fr_4rem]">
+    <aside class="border-border border-r bg-surface/70" aria-label="Left tools bar"></aside>
+
+    <section class="min-h-0 min-w-0">
       <router-outlet />
     </section>
+
+    <aside class="border-border border-l bg-surface/70" aria-label="Right tools bar"></aside>
   </section>
 </main>
