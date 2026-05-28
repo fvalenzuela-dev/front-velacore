@@ -6,12 +6,17 @@ import { ThemeService } from './theme.service';
   selector: 'app-root',
   imports: [RouterLink, RouterLinkActive, RouterOutlet],
   templateUrl: './app.html',
-  styleUrl: './app.css'
+  styleUrl: './app.css',
 })
 export class App {
   protected readonly themeService = inject(ThemeService);
   protected readonly isDarkTheme = this.themeService.isDark;
   protected readonly title = 'Velacore';
+  protected isMenuOpen = false;
+
+  protected toggleMenu(): void {
+    this.isMenuOpen = !this.isMenuOpen;
+  }
 
   protected toggleTheme(): void {
     this.themeService.toggleTheme();

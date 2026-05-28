@@ -1,11 +1,103 @@
 import { TestBed } from '@angular/core/testing';
+import type { UTCTimestamp } from 'lightweight-charts';
 import { TradingPage } from './trading.page';
+import { TradingMarketDataService, type TradingChartData } from './trading-market-data.service';
+
+const chartMocks = vi.hoisted(() => {
+  const candleSeries = { setData: vi.fn() };
+  const volumeSeries = { setData: vi.fn() };
+  const fitContent = vi.fn();
+  const resize = vi.fn();
+  const remove = vi.fn();
+  const observe = vi.fn();
+  const disconnect = vi.fn();
+
+  return {
+    candleSeries,
+    volumeSeries,
+    fitContent,
+    resize,
+    remove,
+    observe,
+    disconnect,
+    addSeries: vi.fn().mockReturnValueOnce(candleSeries).mockReturnValueOnce(volumeSeries),
+    priceScale: vi.fn(() => ({ applyOptions: vi.fn() })),
+    createChart: vi.fn(() => ({
+      addSeries: chartMocks.addSeries,
+      priceScale: chartMocks.priceScale,
+      resize,
+      remove,
+      timeScale: () => ({ fitContent }),
+    })),
+  };
+});
+
+vi.mock('lightweight-charts', () => ({
+  CandlestickSeries: 'CandlestickSeries',
+  ColorType: { Solid: 'solid' },
+  HistogramSeries: 'HistogramSeries',
+  createChart: chartMocks.createChart,
+}));
+
+class ResizeObserverMock {
+  constructor(private readonly callback: ResizeObserverCallback) {}
+
+  observe = chartMocks.observe;
+  disconnect = chartMocks.disconnect;
+
+  trigger(width: number, height: number): void {
+    this.callback(
+      [{ contentRect: { width, height } } as ResizeObserverEntry],
+      this as unknown as ResizeObserver,
+    );
+  }
+}
+
+const chartData: TradingChartData = {
+  source: 'binance',
+  candles: [{ time: 1_767_225_600 as UTCTimestamp, open: 100, high: 120, low: 95, close: 115 }],
+  volumes: [{ time: 1_767_225_600 as UTCTimestamp, value: 1500, color: 'rgba(34, 197, 94, 0.35)' }],
+};
 
 describe('TradingPage', () => {
+  let loadBitcoinChartData: ReturnType<typeof vi.fn>;
+  let resizeObserverInstance: ResizeObserverMock | undefined;
+
   beforeEach(async () => {
+    chartMocks.addSeries.mockClear();
+    chartMocks.addSeries
+      .mockReturnValueOnce(chartMocks.candleSeries)
+      .mockReturnValueOnce(chartMocks.volumeSeries);
+    chartMocks.candleSeries.setData.mockClear();
+    chartMocks.volumeSeries.setData.mockClear();
+    chartMocks.fitContent.mockClear();
+    chartMocks.resize.mockClear();
+    chartMocks.remove.mockClear();
+    chartMocks.observe.mockClear();
+    chartMocks.disconnect.mockClear();
+    chartMocks.createChart.mockClear();
+    chartMocks.priceScale.mockClear();
+    resizeObserverInstance = undefined;
+    loadBitcoinChartData = vi.fn().mockResolvedValue(chartData);
+
+    vi.stubGlobal(
+      'ResizeObserver',
+      class extends ResizeObserverMock {
+        constructor(callback: ResizeObserverCallback) {
+          super(callback);
+          resizeObserverInstance = this;
+        }
+      },
+    );
+
     await TestBed.configureTestingModule({
       imports: [TradingPage],
+      providers: [{ provide: TradingMarketDataService, useValue: { loadBitcoinChartData } }],
     }).compileComponents();
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
   });
 
   it('should create the page', () => {
@@ -14,25 +106,85 @@ describe('TradingPage', () => {
     expect(fixture.componentInstance).toBeTruthy();
   });
 
-  it('should expose the page title used by the template', () => {
-    const fixture = TestBed.createComponent(TradingPage);
-    const component = fixture.componentInstance as unknown as { pageTitle: string };
-
-    expect(component.pageTitle).toBe('Trading');
-  });
-
-  it('should render the trading page title and placeholder copy', () => {
+  it('should render the trading chart layout', () => {
     const fixture = TestBed.createComponent(TradingPage);
     fixture.detectChanges();
 
-    const headingTexts = Array.from(
-      (fixture.nativeElement as HTMLElement).querySelectorAll('h2'),
-    ).map((heading) => heading.textContent?.trim());
-    const paragraphTexts = Array.from(
-      (fixture.nativeElement as HTMLElement).querySelectorAll('p'),
-    ).map((paragraph) => paragraph.textContent?.trim());
+    const nativeElement = fixture.nativeElement as HTMLElement;
 
-    expect(headingTexts).toEqual(['Trading']);
-    expect(paragraphTexts).toContain('This section is ready for future trading workflows.');
+    const chartContainer = nativeElement.querySelector(
+      '[aria-label="BTC candlestick chart with volume histogram"]',
+    );
+
+    expect(nativeElement.querySelector('h2')).toBeNull();
+    expect(nativeElement.textContent).not.toContain('BTC/USDT market overview');
+    expect(nativeElement.textContent).not.toContain('Full-page TradingView-style chart');
+    expect(nativeElement.textContent).not.toContain(
+      'No private API keys, accounts, or order placement are used.',
+    );
+    expect(chartContainer).toBeTruthy();
+    expect(chartContainer?.classList.contains('h-full')).toBe(true);
+    expect(chartContainer?.classList.contains('min-h-[calc(100vh-4rem)]')).toBe(true);
+    expect(chartContainer?.classList.contains('rounded-2xl')).toBe(false);
+  });
+
+  it('should initialize candlestick and volume series with loaded data', async () => {
+    const fixture = TestBed.createComponent(TradingPage);
+    fixture.detectChanges();
+    await fixture.whenStable();
+
+    expect(chartMocks.createChart).toHaveBeenCalledOnce();
+    expect(chartMocks.addSeries).toHaveBeenCalledTimes(2);
+    expect(loadBitcoinChartData).toHaveBeenCalledOnce();
+    expect(chartMocks.candleSeries.setData).toHaveBeenCalledWith(chartData.candles);
+    expect(chartMocks.volumeSeries.setData).toHaveBeenCalledWith(chartData.volumes);
+    expect(chartMocks.fitContent).toHaveBeenCalledOnce();
+  });
+
+  it('should resize with the observed container and clean up on destroy', async () => {
+    const fixture = TestBed.createComponent(TradingPage);
+    fixture.detectChanges();
+    await fixture.whenStable();
+
+    resizeObserverInstance?.trigger(888.8, 444.4);
+    fixture.destroy();
+
+    expect(chartMocks.observe).toHaveBeenCalledOnce();
+    expect(chartMocks.resize).toHaveBeenCalledWith(888, 444);
+    expect(chartMocks.disconnect).toHaveBeenCalledOnce();
+    expect(chartMocks.remove).toHaveBeenCalledOnce();
+  });
+
+  it('should surface fallback copy when Binance data is unavailable', async () => {
+    loadBitcoinChartData.mockResolvedValueOnce({ ...chartData, source: 'fallback' });
+    const fixture = TestBed.createComponent(TradingPage);
+    fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    expect((fixture.nativeElement as HTMLElement).textContent).not.toContain(
+      'Static fallback data',
+    );
+    expect((fixture.nativeElement as HTMLElement).textContent).toContain(
+      'Binance data could not be loaded',
+    );
+  });
+
+  it('should not apply async chart data after the component is destroyed', async () => {
+    let resolveData: (data: TradingChartData) => void = () => undefined;
+    loadBitcoinChartData.mockReturnValueOnce(
+      new Promise<TradingChartData>((resolve) => (resolveData = resolve)),
+    );
+
+    const fixture = TestBed.createComponent(TradingPage);
+    fixture.detectChanges();
+    fixture.destroy();
+    resolveData(chartData);
+    await fixture.whenStable();
+
+    expect(chartMocks.remove).toHaveBeenCalledOnce();
+    expect(chartMocks.candleSeries.setData).not.toHaveBeenCalled();
+    expect(chartMocks.volumeSeries.setData).not.toHaveBeenCalled();
+    expect(chartMocks.fitContent).not.toHaveBeenCalled();
   });
 });
