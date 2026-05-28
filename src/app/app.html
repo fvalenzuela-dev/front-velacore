@@ -35,6 +35,23 @@
       </article>
     </section>
 
+    <section class="rounded-3xl border border-border bg-surface p-5 sm:p-6">
+      <div class="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+        <div>
+          <p class="text-sm font-medium text-primary">Sistema UI</p>
+          <h2 class="mt-1 text-2xl font-semibold text-foreground">Botones reutilizables</h2>
+        </div>
+        <p class="max-w-xl text-sm leading-6 text-muted">Variantes disponibles para acciones principales, estados de operación y controles neutros.</p>
+      </div>
+
+      <div class="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        @for (button of buttonShowcase; track button.variant) {
+          <app-button [variant]="button.variant">{{ button.label }}</app-button>
+        }
+        <app-button variant="neutral" [disabled]="true">Disabled</app-button>
+      </div>
+    </section>
+
     <section class="grid gap-6 lg:grid-cols-[1.15fr_0.85fr]">
       <article class="rounded-3xl border border-border bg-surface-elevated p-5 shadow-2xl shadow-primary/20 sm:p-6">
         <div class="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
