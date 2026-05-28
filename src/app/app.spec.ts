@@ -53,6 +53,12 @@ describe('App', () => {
     expect(trigger?.getAttribute('aria-expanded')).toBe('true');
     expect(floatingPanel?.classList.contains('opacity-100')).toBe(true);
     expect(floatingPanel?.classList.contains('pointer-events-auto')).toBe(true);
+
+    document.body.click();
+    fixture.detectChanges();
+
+    expect(trigger?.getAttribute('aria-expanded')).toBe('false');
+    expect(floatingPanel?.classList.contains('pointer-events-none')).toBe(true);
     expect(topBar).toBeTruthy();
     expect(leftBar).toBeTruthy();
     expect(rightBar).toBeTruthy();
