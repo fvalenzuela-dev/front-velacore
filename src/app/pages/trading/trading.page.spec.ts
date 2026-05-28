@@ -107,13 +107,13 @@ describe('TradingPage', () => {
     const fixture = TestBed.createComponent(TradingPage);
     fixture.detectChanges();
 
-    const hostElement = fixture.nativeElement as HTMLElement;
-    const pageText = hostElement.textContent ?? '';
-    const chartContainer = hostElement.querySelector(
+    const hostHTMLElement = fixture.nativeElement as HTMLElement;
+    const pageText = hostHTMLElement.textContent ?? '';
+    const chartContainer = hostHTMLElement.querySelector(
       '[aria-label="BTC candlestick chart with volume histogram"]',
     );
 
-    expect(hostElement.querySelector('h2')).toBeNull();
+    expect(hostHTMLElement.querySelector('h2')).toBeNull();
     expect(pageText).not.toContain('BTC/USDT market overview');
     expect(pageText).not.toContain('Full-page TradingView-style chart');
     expect(pageText).not.toContain('No private API keys, accounts, or order placement are used.');
@@ -164,7 +164,7 @@ describe('TradingPage', () => {
   });
 
   it('should not apply async chart data after the component is destroyed', async () => {
-    let resolveData!: (data: TradingChartData) => void;
+    let resolveData!: (_chartData: TradingChartData) => void;
     loadBitcoinChartData.mockReturnValueOnce(
       new Promise<TradingChartData>((resolve) => {
         resolveData = resolve;
