@@ -6,9 +6,29 @@
         <h1 class="mt-2 text-3xl font-semibold tracking-tight text-foreground sm:text-4xl">Panel de control</h1>
         <p class="mt-2 max-w-2xl text-sm text-muted sm:text-base">Vista general de ventas, operaciones y actividad reciente para seguir el pulso del negocio.</p>
       </div>
-      <div class="flex items-center gap-3 rounded-2xl border border-info/20 bg-info/10 px-4 py-3 text-sm text-info">
-        <span class="h-2.5 w-2.5 rounded-full bg-success shadow-[0_0_18px_var(--vc-success)]"></span>
-        Sistema operativo
+      <div class="flex flex-wrap items-center gap-3">
+        <button
+          type="button"
+          class="inline-flex size-11 items-center justify-center rounded-2xl border border-border bg-surface-elevated text-foreground shadow-lg shadow-primary/10 transition hover:bg-muted/10 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+          [attr.aria-label]="isDarkTheme() ? 'Cambiar a modo claro' : 'Cambiar a modo oscuro'"
+          [attr.aria-pressed]="isDarkTheme()"
+          (click)="toggleTheme()"
+        >
+          @if (isDarkTheme()) {
+            <svg class="size-5" aria-hidden="true" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M12 3v2.25M12 18.75V21M4.97 4.97l1.59 1.59M17.44 17.44l1.59 1.59M3 12h2.25M18.75 12H21M4.97 19.03l1.59-1.59M17.44 6.56l1.59-1.59" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" />
+              <circle cx="12" cy="12" r="4.25" stroke="currentColor" stroke-width="1.8" />
+            </svg>
+          } @else {
+            <svg class="size-5" aria-hidden="true" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M20.25 14.15A7.5 7.5 0 0 1 9.85 3.75a8.5 8.5 0 1 0 10.4 10.4Z" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />
+            </svg>
+          }
+        </button>
+        <div class="flex items-center gap-3 rounded-2xl border border-info/20 bg-info/10 px-4 py-3 text-sm text-info">
+          <span class="h-2.5 w-2.5 rounded-full bg-success shadow-[0_0_18px_var(--vc-success)]"></span>
+          Sistema operativo
+        </div>
       </div>
     </header>
 
