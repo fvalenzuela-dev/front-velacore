@@ -34,12 +34,16 @@ export class ThemeService {
       return storedTheme;
     }
 
-    return globalThis.matchMedia?.('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+    if (typeof globalThis.matchMedia === 'function') {
+      return globalThis.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+    }
+
+    return 'light';
   }
 
   private readStoredTheme(): ThemePreference | null {
     try {
-      const storedTheme = globalThis.localStorage?.getItem(THEME_STORAGE_KEY);
+      const storedTheme = globalThis.localStorage.getItem(THEME_STORAGE_KEY);
       return storedTheme === 'dark' || storedTheme === 'light' ? storedTheme : null;
     } catch {
       return null;
@@ -48,7 +52,7 @@ export class ThemeService {
 
   private persistTheme(theme: ThemePreference): void {
     try {
-      globalThis.localStorage?.setItem(THEME_STORAGE_KEY, theme);
+      globalThis.localStorage.setItem(THEME_STORAGE_KEY, theme);
     } catch {
       // Persistence is best-effort; the current page still reflects the selected theme.
     }
