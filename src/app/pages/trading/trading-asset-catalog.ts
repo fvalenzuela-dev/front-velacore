@@ -7,6 +7,7 @@ export type TradeableAssetType = 'crypto' | 'stock' | 'index' | 'etf';
 export type TradeableAsset = {
   id: string;
   symbol: string;
+  backendSymbol?: string;
   displayName: string;
   category: TradeableAssetCategory;
   provider?: TradeableAssetProvider;
@@ -101,6 +102,7 @@ export const TRADEABLE_ASSETS: readonly TradeableAsset[] = [
   {
     id: 'index-sp500',
     symbol: 'SP500',
+    backendSymbol: '^GSPC',
     displayName: 'S&P 500',
     category: 'index',
     provider: 'yahoo',
@@ -110,6 +112,7 @@ export const TRADEABLE_ASSETS: readonly TradeableAsset[] = [
   {
     id: 'index-ndx',
     symbol: 'NDX',
+    backendSymbol: '^NDX',
     displayName: 'Nasdaq 100',
     category: 'index',
     provider: 'yahoo',
@@ -119,6 +122,7 @@ export const TRADEABLE_ASSETS: readonly TradeableAsset[] = [
   {
     id: 'index-dji',
     symbol: 'DJI',
+    backendSymbol: '^DJI',
     displayName: 'Dow Jones Industrial Average',
     category: 'index',
     provider: 'yahoo',

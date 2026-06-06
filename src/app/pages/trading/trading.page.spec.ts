@@ -78,7 +78,7 @@ function findButtonByText(hostHTMLElement: HTMLElement, text: string): HTMLButto
 }
 
 describe('TradingPage', () => {
-  let loadBitcoinChartData: ReturnType<typeof vi.fn>;
+  let loadAssetChartData: ReturnType<typeof vi.fn>;
 
   beforeEach(async () => {
     chartMocks.addSeries.mockClear();
@@ -95,13 +95,13 @@ describe('TradingPage', () => {
     chartMocks.createChart.mockClear();
     chartMocks.priceScale.mockClear();
     ResizeObserverMock.current = undefined;
-    loadBitcoinChartData = vi.fn().mockResolvedValue(chartData);
+    loadAssetChartData = vi.fn().mockResolvedValue(chartData);
 
     vi.stubGlobal('ResizeObserver', ResizeObserverMock);
 
     await TestBed.configureTestingModule({
       imports: [TradingPage],
-      providers: [{ provide: TradingMarketDataService, useValue: { loadBitcoinChartData } }],
+      providers: [{ provide: TradingMarketDataService, useValue: { loadAssetChartData } }],
     }).compileComponents();
   });
 
@@ -141,7 +141,8 @@ describe('TradingPage', () => {
 
     expect(chartMocks.createChart).toHaveBeenCalledOnce();
     expect(chartMocks.addSeries).toHaveBeenCalledTimes(2);
-    expect(loadBitcoinChartData).toHaveBeenCalledOnce();
+    expect(loadAssetChartData).toHaveBeenCalledOnce();
+    expect(loadAssetChartData.mock.calls[0][0]).toMatchObject({ symbol: 'BTCUSDT' });
     expect(chartMocks.candleSeries.setData).toHaveBeenCalledWith(chartData.candles);
     expect(chartMocks.volumeSeries.setData).toHaveBeenCalledWith(chartData.volumes);
     expect(chartMocks.fitContent).toHaveBeenCalledOnce();
@@ -221,7 +222,7 @@ describe('TradingPage', () => {
     expect(hostHTMLElement.textContent).not.toContain('Ethereum / Tether');
   });
 
-  it('should update the selected asset and close the popup after selection', () => {
+  it('should update the selected asset, load its chart data, and close the popup after selection', async () => {
     const fixture = TestBed.createComponent(TradingPage);
     fixture.detectChanges();
 
@@ -235,6 +236,7 @@ describe('TradingPage', () => {
     expect(teslaOption).toBeTruthy();
     (teslaOption as HTMLButtonElement).click();
     fixture.detectChanges();
+    await fixture.whenStable();
 
     const component = fixture.componentInstance as unknown as {
       selectedAsset: { symbol: string; displayName: string };
@@ -244,11 +246,73 @@ describe('TradingPage', () => {
     expect(hostHTMLElement.querySelector('[role="dialog"]')).toBeNull();
     expect(hostHTMLElement.textContent).toContain('Tesla');
     expect(hostHTMLElement.textContent).toContain('TSLA');
-    expect(loadBitcoinChartData).toHaveBeenCalledOnce();
+    expect(loadAssetChartData).toHaveBeenCalledTimes(2);
+    expect(loadAssetChartData.mock.calls[1][0]).toMatchObject({
+      symbol: 'TSLA',
+      provider: 'twelve-data',
+      assetType: 'stock',
+    });
   });
 
-  it('should mark fallback state when Binance data is unavailable', async () => {
-    loadBitcoinChartData.mockResolvedValueOnce({ ...chartData, source: 'fallback' });
+  it('should ignore stale chart data responses after selecting another asset', async () => {
+    const staleBitcoinData: TradingChartData = {
+      source: 'binance',
+      candles: [{ time: 1_767_225_600 as UTCTimestamp, open: 10, high: 12, low: 9, close: 11 }],
+      volumes: [
+        { time: 1_767_225_600 as UTCTimestamp, value: 100, color: 'rgba(34, 197, 94, 0.35)' },
+      ],
+    };
+    const teslaData: TradingChartData = {
+      source: 'twelve-data',
+      candles: [{ time: 1_767_312_000 as UTCTimestamp, open: 200, high: 220, low: 190, close: 215 }],
+      volumes: [
+        { time: 1_767_312_000 as UTCTimestamp, value: 300, color: 'rgba(34, 197, 94, 0.35)' },
+      ],
+    };
+    let resolveBitcoinData: VoidFunction = vi.fn();
+    let resolveTeslaData: VoidFunction = vi.fn();
+    loadAssetChartData
+      .mockReturnValueOnce(
+        new Promise<TradingChartData>((resolve) => {
+          resolveBitcoinData = function resolveStaleBitcoinData(): void {
+            resolve(staleBitcoinData);
+          };
+        }),
+      )
+      .mockReturnValueOnce(
+        new Promise<TradingChartData>((resolve) => {
+          resolveTeslaData = function resolveSelectedTeslaData(): void {
+            resolve(teslaData);
+          };
+        }),
+      );
+
+    const fixture = TestBed.createComponent(TradingPage);
+    fixture.detectChanges();
+    const hostHTMLElement = fixture.nativeElement as HTMLElement;
+    findButtonByText(hostHTMLElement, 'Select asset').click();
+    fixture.detectChanges();
+    findButtonByText(hostHTMLElement, 'Stocks').click();
+    fixture.detectChanges();
+    const teslaOption = hostHTMLElement.querySelector('[aria-label="Select Tesla (TSLA)"]');
+    (teslaOption as HTMLButtonElement).click();
+    fixture.detectChanges();
+
+    expect(chartMocks.candleSeries.setData).toHaveBeenLastCalledWith([]);
+    expect(chartMocks.volumeSeries.setData).toHaveBeenLastCalledWith([]);
+    expect(hostHTMLElement.textContent).toContain('Loading chart data for Tesla');
+
+    resolveTeslaData();
+    await fixture.whenStable();
+    expect(chartMocks.candleSeries.setData).toHaveBeenCalledWith(teslaData.candles);
+
+    resolveBitcoinData();
+    await fixture.whenStable();
+    expect(chartMocks.candleSeries.setData).not.toHaveBeenCalledWith(staleBitcoinData.candles);
+  });
+
+  it('should mark unavailable state when selected market data cannot be loaded', async () => {
+    loadAssetChartData.mockResolvedValueOnce({ candles: [], volumes: [], source: 'unavailable' });
     const fixture = TestBed.createComponent(TradingPage);
     fixture.detectChanges();
     await fixture.whenStable();
@@ -258,12 +322,12 @@ describe('TradingPage', () => {
     const fallbackNotice = (fixture.nativeElement as HTMLElement).querySelector('.text-warning');
 
     expect(component.loadError).toBe(true);
-    expect(fallbackNotice).toBeTruthy();
+    expect(fallbackNotice?.textContent).toContain('Market data could not be loaded');
   });
 
   it('should not apply async chart data after the component is destroyed', async () => {
     let resolveData: VoidFunction = vi.fn();
-    loadBitcoinChartData.mockReturnValueOnce(
+    loadAssetChartData.mockReturnValueOnce(
       new Promise<TradingChartData>((resolve) => {
         resolveData = function resolveChartData(): void {
           resolve(chartData);
@@ -278,8 +342,10 @@ describe('TradingPage', () => {
     await fixture.whenStable();
 
     expect(chartMocks.remove).toHaveBeenCalledOnce();
-    expect(chartMocks.candleSeries.setData).not.toHaveBeenCalled();
-    expect(chartMocks.volumeSeries.setData).not.toHaveBeenCalled();
+    expect(chartMocks.candleSeries.setData).toHaveBeenCalledWith([]);
+    expect(chartMocks.volumeSeries.setData).toHaveBeenCalledWith([]);
+    expect(chartMocks.candleSeries.setData).not.toHaveBeenCalledWith(chartData.candles);
+    expect(chartMocks.volumeSeries.setData).not.toHaveBeenCalledWith(chartData.volumes);
     expect(chartMocks.fitContent).not.toHaveBeenCalled();
   });
 });

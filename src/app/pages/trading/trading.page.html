@@ -37,11 +37,17 @@
     ></div>
   </div>
 
+  @if (isChartLoading) {
+    <p class="mt-4 rounded-2xl border border-border bg-surface px-4 py-3 text-sm text-muted">
+      Loading chart data for {{ selectedAsset.displayName }}…
+    </p>
+  }
+
   @if (loadError) {
     <p
       class="mt-4 rounded-2xl border border-warning/20 bg-warning/10 px-4 py-3 text-sm text-warning"
     >
-      Binance data could not be loaded, so the chart is using a typed static BTC sample.
+      Market data could not be loaded for {{ selectedAsset.displayName }}. Check that the local backend is running at http://localhost:8091.
     </p>
   }
 

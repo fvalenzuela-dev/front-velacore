@@ -1,6 +1,38 @@
 import { TestBed } from '@angular/core/testing';
 import type { UTCTimestamp } from 'lightweight-charts';
-import { TradingMarketDataService, type BinanceKline } from './trading-market-data.service';
+import type { TradeableAsset } from './trading-asset-catalog';
+import { TradingMarketDataService } from './trading-market-data.service';
+
+const btcAsset: TradeableAsset = {
+  id: 'crypto-btcusdt',
+  symbol: 'BTCUSDT',
+  displayName: 'Bitcoin / Tether',
+  category: 'crypto',
+  provider: 'binance',
+  exchange: 'Binance Spot',
+  assetType: 'crypto',
+};
+
+const teslaAsset: TradeableAsset = {
+  id: 'stock-tsla',
+  symbol: 'TSLA',
+  displayName: 'Tesla',
+  category: 'stock',
+  provider: 'twelve-data',
+  exchange: 'NASDAQ',
+  assetType: 'stock',
+};
+
+const sp500Asset: TradeableAsset = {
+  id: 'index-sp500',
+  symbol: 'SP500',
+  backendSymbol: '^GSPC',
+  displayName: 'S&P 500',
+  category: 'index',
+  provider: 'yahoo',
+  exchange: 'US Indexes',
+  assetType: 'index',
+};
 
 describe('TradingMarketDataService', () => {
   let service: TradingMarketDataService;
@@ -14,17 +46,44 @@ describe('TradingMarketDataService', () => {
     vi.unstubAllGlobals();
   });
 
-  it('should map Binance klines to candlestick and volume data', () => {
-    const openTime = Date.UTC(2026, 0, 1);
-    const klines: BinanceKline[] = [
-      [openTime, '100.5', '110.25', '95', '108.75', '1234.56', openTime, '0', 10, '0', '0', '0'],
-    ];
+  it('should build the Binance backend URL for crypto assets', () => {
+    expect(service.buildMarketDataUrl(btcAsset).href).toBe(
+      'http://localhost:8091/market-data/binance/BTCUSDT?interval=1d&limit=90',
+    );
+  });
 
-    const mapped = service.mapBinanceKlines(klines);
+  it('should build the Twelve Data backend URL for stock and ETF assets', () => {
+    expect(service.buildMarketDataUrl(teslaAsset).href).toBe(
+      'http://localhost:8091/market-data/twelve-data/TSLA?interval=1day&outputsize=90&exchange=NASDAQ&asset_type=stock',
+    );
+  });
+
+  it('should build the Yahoo backend URL using backend symbols when present', () => {
+    expect(service.buildMarketDataUrl(sp500Asset).href).toBe(
+      'http://localhost:8091/market-data/yahoo/%5EGSPC?period=3mo&interval=1d',
+    );
+  });
+
+  it('should map backend candles to candlestick and volume data', () => {
+    const mapped = service.mapBackendMarketData({
+      provider: 'binance',
+      symbol: 'BTCUSDT',
+      interval: '1d',
+      candles: [
+        {
+          timestamp: '2026-01-01T00:00:00Z',
+          open: 100.5,
+          high: 110.25,
+          low: 95,
+          close: 108.75,
+          volume: 1234.56,
+        },
+      ],
+    });
 
     expect(mapped.candles).toEqual([
       {
-        time: Math.floor(openTime / 1000) as UTCTimestamp,
+        time: Date.UTC(2026, 0, 1) / 1000 as UTCTimestamp,
         open: 100.5,
         high: 110.25,
         low: 95,
@@ -33,46 +92,99 @@ describe('TradingMarketDataService', () => {
     ]);
     expect(mapped.volumes).toEqual([
       {
-        time: Math.floor(openTime / 1000) as UTCTimestamp,
+        time: Date.UTC(2026, 0, 1) / 1000 as UTCTimestamp,
         value: 1234.56,
         color: 'rgba(34, 197, 94, 0.35)',
       },
     ]);
   });
 
-  it('should ignore invalid Binance klines', () => {
-    const klines: BinanceKline[] = [
-      [0, 'invalid', '110', '95', '108', '1234', 0, '0', 0, '0', '0', '0'],
-    ];
+  it('should ignore invalid backend candles', () => {
+    const mapped = service.mapBackendMarketData({
+      provider: 'binance',
+      symbol: 'BTCUSDT',
+      interval: '1d',
+      candles: [
+        {
+          timestamp: 'not-a-date',
+          open: Number.NaN,
+          high: 110,
+          low: 95,
+          close: 108,
+          volume: 1234,
+        },
+      ],
+    });
 
-    expect(service.mapBinanceKlines(klines)).toEqual({ candles: [], volumes: [] });
+    expect(mapped).toEqual({ candles: [], volumes: [] });
   });
 
-  it('should return Binance data when the public request succeeds', async () => {
+  it('should return backend data when the request succeeds', async () => {
     vi.stubGlobal(
       'fetch',
       vi.fn().mockResolvedValue({
         ok: true,
-        json: vi
-          .fn()
-          .mockResolvedValue([[0, '100', '110', '90', '105', '2000', 0, '0', 0, '0', '0', '0']]),
+        json: vi.fn().mockResolvedValue({
+          provider: 'twelve-data',
+          symbol: 'TSLA',
+          interval: '1day',
+          candles: [
+            {
+              timestamp: '2026-01-01T00:00:00Z',
+              open: 100,
+              high: 110,
+              low: 90,
+              close: 105,
+              volume: 2000,
+            },
+          ],
+        }),
       }),
     );
 
-    const data = await service.loadBitcoinChartData();
+    const data = await service.loadAssetChartData(teslaAsset);
 
-    expect(data.source).toBe('binance');
+    expect(fetch).toHaveBeenCalledWith(
+      'http://localhost:8091/market-data/twelve-data/TSLA?interval=1day&outputsize=90&exchange=NASDAQ&asset_type=stock',
+    );
+    expect(data.source).toBe('twelve-data');
     expect(data.candles).toHaveLength(1);
     expect(data.volumes).toHaveLength(1);
   });
 
-  it('should fall back to static data when Binance fails', async () => {
+  it('should reject backend data that does not match the requested asset', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({
+        ok: true,
+        json: vi.fn().mockResolvedValue({
+          provider: 'binance',
+          symbol: 'BTCUSDT',
+          interval: '1d',
+          candles: [
+            {
+              timestamp: '2026-01-01T00:00:00Z',
+              open: 100,
+              high: 110,
+              low: 90,
+              close: 105,
+              volume: 2000,
+            },
+          ],
+        }),
+      }),
+    );
+
+    const data = await service.loadAssetChartData(teslaAsset);
+
+    expect(data).toEqual({ candles: [], volumes: [], source: 'unavailable' });
+  });
+
+  it('should return unavailable data when the backend request fails', async () => {
     vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('network unavailable')));
 
-    const data = await service.loadBitcoinChartData();
+    const data = await service.loadAssetChartData(btcAsset);
 
-    expect(data.source).toBe('fallback');
-    expect(data.candles.length).toBeGreaterThan(0);
-    expect(data.volumes).toHaveLength(data.candles.length);
+    expect(data).toEqual({ candles: [], volumes: [], source: 'unavailable' });
   });
 });

@@ -43,11 +43,13 @@ export class TradingPage implements AfterViewInit, OnDestroy {
   private candleSeries?: ISeriesApi<'Candlestick'>;
   private volumeSeries?: ISeriesApi<'Histogram'>;
   private resizeObserver?: ResizeObserver;
+  private latestChartDataRequestId = 0;
   private destroyed = false;
 
   protected readonly assetCategories = TRADEABLE_ASSET_CATEGORIES;
   protected readonly assets = TRADEABLE_ASSETS;
   protected loadError = false;
+  protected isChartLoading = false;
   protected isAssetSelectorOpen = false;
   protected selectedAsset: TradeableAsset = TRADEABLE_ASSETS[0];
   protected selectedCategory: TradeableAssetCategory = this.selectedAsset.category;
@@ -109,6 +111,7 @@ export class TradingPage implements AfterViewInit, OnDestroy {
   protected selectAsset(asset: TradeableAsset): void {
     this.selectedAsset = asset;
     this.closeAssetSelector();
+    void this.loadSelectedAssetChartData(asset);
   }
 
   async ngAfterViewInit(): Promise<void> {
@@ -121,13 +124,7 @@ export class TradingPage implements AfterViewInit, OnDestroy {
     this.createTradingChart(container);
     this.attachResizeObserver(container);
 
-    const data = await this.marketData.loadBitcoinChartData();
-
-    if (this.destroyed) {
-      return;
-    }
-
-    this.applyChartData(data);
+    await this.loadSelectedAssetChartData();
   }
 
   ngOnDestroy(): void {
@@ -192,12 +189,30 @@ export class TradingPage implements AfterViewInit, OnDestroy {
     this.resizeObserver.observe(container);
   }
 
+  private async loadSelectedAssetChartData(asset = this.selectedAsset): Promise<void> {
+    const requestId = ++this.latestChartDataRequestId;
+    this.isChartLoading = true;
+    this.loadError = false;
+    this.candleSeries?.setData([]);
+    this.volumeSeries?.setData([]);
+    this.changeDetector.detectChanges();
+
+    const data = await this.marketData.loadAssetChartData(asset);
+
+    if (this.destroyed || requestId !== this.latestChartDataRequestId || asset.id !== this.selectedAsset.id) {
+      return;
+    }
+
+    this.isChartLoading = false;
+    this.applyChartData(data);
+  }
+
   private applyChartData(data: TradingChartData): void {
     if (this.destroyed) {
       return;
     }
 
-    this.loadError = data.source === 'fallback';
+    this.loadError = data.source === 'unavailable';
 
     this.candleSeries?.setData(data.candles);
     this.volumeSeries?.setData(data.volumes);
