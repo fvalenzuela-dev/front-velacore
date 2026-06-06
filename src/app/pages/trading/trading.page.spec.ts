@@ -65,6 +65,18 @@ const chartData: TradingChartData = {
   volumes: [{ time: 1_767_225_600 as UTCTimestamp, value: 1500, color: 'rgba(34, 197, 94, 0.35)' }],
 };
 
+function findButtonByText(hostHTMLElement: HTMLElement, text: string): HTMLButtonElement {
+  const button = Array.from(hostHTMLElement.querySelectorAll('button')).find((candidate) =>
+    candidate.textContent?.includes(text),
+  );
+
+  if (!(button instanceof HTMLButtonElement)) {
+    throw new Error(`Button with text "${text}" was not found.`);
+  }
+
+  return button;
+}
+
 describe('TradingPage', () => {
   let loadBitcoinChartData: ReturnType<typeof vi.fn>;
 
@@ -103,17 +115,19 @@ describe('TradingPage', () => {
     expect(fixture.componentInstance).toBeTruthy();
   });
 
-  it('should render the trading chart layout', () => {
+  it('should render the trading chart layout with an asset selector trigger', () => {
     const fixture = TestBed.createComponent(TradingPage);
     fixture.detectChanges();
 
     const hostHTMLElement = fixture.nativeElement as HTMLElement;
     const chartContainer = hostHTMLElement.querySelector(
-      '[aria-label="BTC candlestick chart with volume histogram"]',
+      '[aria-label="Trading candlestick chart with volume histogram"]',
     );
+    const selectorTrigger = hostHTMLElement.querySelector('[aria-haspopup="dialog"]');
 
-    expect(hostHTMLElement.querySelector('h2')).toBeNull();
-    expect(hostHTMLElement.querySelector('p')).toBeNull();
+    expect(hostHTMLElement.textContent).toContain('Selected asset');
+    expect(hostHTMLElement.textContent).toContain('Bitcoin / Tether');
+    expect(selectorTrigger?.textContent).toContain('Select asset');
     expect(chartContainer).toBeTruthy();
     expect(chartContainer?.classList.contains('h-full')).toBe(true);
     expect(chartContainer?.classList.contains('min-h-[calc(100vh-4rem)]')).toBe(true);
@@ -145,6 +159,92 @@ describe('TradingPage', () => {
     expect(chartMocks.resize).toHaveBeenCalledWith(888, 444);
     expect(chartMocks.disconnect).toHaveBeenCalledOnce();
     expect(chartMocks.remove).toHaveBeenCalledOnce();
+  });
+
+  it('should open and close the asset selector popup', () => {
+    const fixture = TestBed.createComponent(TradingPage);
+    fixture.detectChanges();
+
+    const hostHTMLElement = fixture.nativeElement as HTMLElement;
+    findButtonByText(hostHTMLElement, 'Select asset').click();
+    fixture.detectChanges();
+
+    expect(hostHTMLElement.querySelector('[role="dialog"]')).toBeTruthy();
+    expect(hostHTMLElement.textContent).toContain('Choose an asset');
+    expect(hostHTMLElement.textContent).toContain('Cryptocurrencies');
+    expect(hostHTMLElement.textContent).toContain('Bitcoin / Tether');
+
+    const closeButton = hostHTMLElement.querySelector('[aria-label="Close asset selector"]');
+    expect(closeButton).toBeTruthy();
+    expect(document.activeElement).toBe(closeButton);
+    (closeButton as HTMLButtonElement).click();
+    fixture.detectChanges();
+
+    expect(hostHTMLElement.querySelector('[role="dialog"]')).toBeNull();
+  });
+
+  it('should close the asset selector with Escape and restore trigger focus', () => {
+    const fixture = TestBed.createComponent(TradingPage);
+    fixture.detectChanges();
+
+    const hostHTMLElement = fixture.nativeElement as HTMLElement;
+    const selectorTrigger = findButtonByText(hostHTMLElement, 'Select asset');
+    selectorTrigger.click();
+    fixture.detectChanges();
+
+    const dialog = hostHTMLElement.querySelector('[role="dialog"]');
+    expect(dialog).toBeTruthy();
+    dialog?.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+    fixture.detectChanges();
+
+    expect(hostHTMLElement.querySelector('[role="dialog"]')).toBeNull();
+    expect(document.activeElement).toBe(selectorTrigger);
+  });
+
+  it('should switch asset categories in the selector', () => {
+    const fixture = TestBed.createComponent(TradingPage);
+    fixture.detectChanges();
+
+    const hostHTMLElement = fixture.nativeElement as HTMLElement;
+    findButtonByText(hostHTMLElement, 'Select asset').click();
+    fixture.detectChanges();
+
+    expect(hostHTMLElement.textContent).toContain('Ethereum / Tether');
+    expect(hostHTMLElement.textContent).not.toContain('Tesla');
+
+    findButtonByText(hostHTMLElement, 'Stocks').click();
+    fixture.detectChanges();
+
+    expect(hostHTMLElement.textContent).toContain('Tesla');
+    expect(hostHTMLElement.textContent).toContain('Apple');
+    expect(hostHTMLElement.textContent).toContain('Microsoft');
+    expect(hostHTMLElement.textContent).not.toContain('Ethereum / Tether');
+  });
+
+  it('should update the selected asset and close the popup after selection', () => {
+    const fixture = TestBed.createComponent(TradingPage);
+    fixture.detectChanges();
+
+    const hostHTMLElement = fixture.nativeElement as HTMLElement;
+    findButtonByText(hostHTMLElement, 'Select asset').click();
+    fixture.detectChanges();
+    findButtonByText(hostHTMLElement, 'Stocks').click();
+    fixture.detectChanges();
+
+    const teslaOption = hostHTMLElement.querySelector('[aria-label="Select Tesla (TSLA)"]');
+    expect(teslaOption).toBeTruthy();
+    (teslaOption as HTMLButtonElement).click();
+    fixture.detectChanges();
+
+    const component = fixture.componentInstance as unknown as {
+      selectedAsset: { symbol: string; displayName: string };
+    };
+    expect(component.selectedAsset.symbol).toBe('TSLA');
+    expect(component.selectedAsset.displayName).toBe('Tesla');
+    expect(hostHTMLElement.querySelector('[role="dialog"]')).toBeNull();
+    expect(hostHTMLElement.textContent).toContain('Tesla');
+    expect(hostHTMLElement.textContent).toContain('TSLA');
+    expect(loadBitcoinChartData).toHaveBeenCalledOnce();
   });
 
   it('should mark fallback state when Binance data is unavailable', async () => {
