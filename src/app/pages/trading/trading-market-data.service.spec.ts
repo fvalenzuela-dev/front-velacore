@@ -83,7 +83,7 @@ describe('TradingMarketDataService', () => {
 
     expect(mapped.candles).toEqual([
       {
-        time: Date.UTC(2026, 0, 1) / 1000 as UTCTimestamp,
+        time: (Date.UTC(2026, 0, 1) / 1000) as UTCTimestamp,
         open: 100.5,
         high: 110.25,
         low: 95,
@@ -92,11 +92,52 @@ describe('TradingMarketDataService', () => {
     ]);
     expect(mapped.volumes).toEqual([
       {
-        time: Date.UTC(2026, 0, 1) / 1000 as UTCTimestamp,
+        time: (Date.UTC(2026, 0, 1) / 1000) as UTCTimestamp,
         value: 1234.56,
         color: 'rgba(34, 197, 94, 0.35)',
       },
     ]);
+  });
+
+  it('should sort backend candles chronologically for Lightweight Charts', () => {
+    const mapped = service.mapBackendMarketData({
+      provider: 'twelve-data',
+      symbol: 'TSLA',
+      interval: '1day',
+      candles: [
+        {
+          timestamp: '2026-01-03T00:00:00Z',
+          open: 120,
+          high: 125,
+          low: 115,
+          close: 118,
+          volume: 3000,
+        },
+        {
+          timestamp: '2026-01-01T00:00:00Z',
+          open: 100,
+          high: 110,
+          low: 90,
+          close: 105,
+          volume: 1000,
+        },
+        {
+          timestamp: '2026-01-02T00:00:00Z',
+          open: 105,
+          high: 121,
+          low: 104,
+          close: 120,
+          volume: 2000,
+        },
+      ],
+    });
+
+    expect(mapped.candles.map((candle) => candle.time)).toEqual([
+      (Date.UTC(2026, 0, 1) / 1000) as UTCTimestamp,
+      (Date.UTC(2026, 0, 2) / 1000) as UTCTimestamp,
+      (Date.UTC(2026, 0, 3) / 1000) as UTCTimestamp,
+    ]);
+    expect(mapped.volumes.map((volume) => volume.value)).toEqual([1000, 2000, 3000]);
   });
 
   it('should ignore invalid backend candles', () => {

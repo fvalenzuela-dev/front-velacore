@@ -199,7 +199,11 @@ export class TradingPage implements AfterViewInit, OnDestroy {
 
     const data = await this.marketData.loadAssetChartData(asset);
 
-    if (this.destroyed || requestId !== this.latestChartDataRequestId || asset.id !== this.selectedAsset.id) {
+    if (
+      this.destroyed ||
+      requestId !== this.latestChartDataRequestId ||
+      asset.id !== this.selectedAsset.id
+    ) {
       return;
     }
 

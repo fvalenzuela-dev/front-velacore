@@ -264,7 +264,9 @@ describe('TradingPage', () => {
     };
     const teslaData: TradingChartData = {
       source: 'twelve-data',
-      candles: [{ time: 1_767_312_000 as UTCTimestamp, open: 200, high: 220, low: 190, close: 215 }],
+      candles: [
+        { time: 1_767_312_000 as UTCTimestamp, open: 200, high: 220, low: 190, close: 215 },
+      ],
       volumes: [
         { time: 1_767_312_000 as UTCTimestamp, value: 300, color: 'rgba(34, 197, 94, 0.35)' },
       ],

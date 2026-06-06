@@ -114,8 +114,7 @@ export class TradingMarketDataService {
   }
 
   mapBackendMarketData(response: BackendMarketDataResponse): Omit<TradingChartData, 'source'> {
-    const candles: CandlestickData[] = [];
-    const volumes: HistogramData[] = [];
+    const chartPoints: Array<{ candle: CandlestickData; volume: HistogramData }> = [];
 
     for (const candle of response.candles ?? []) {
       const timeInSeconds = Date.parse(candle.timestamp) / 1000;
@@ -130,15 +129,22 @@ export class TradingMarketDataService {
       }
 
       const time = Math.floor(timeInSeconds) as UTCTimestamp;
-      candles.push({ time, open, high, low, close });
-      volumes.push({
-        time,
-        value: volume,
-        color: close >= open ? 'rgba(34, 197, 94, 0.35)' : 'rgba(239, 68, 68, 0.35)',
+      chartPoints.push({
+        candle: { time, open, high, low, close },
+        volume: {
+          time,
+          value: volume,
+          color: close >= open ? 'rgba(34, 197, 94, 0.35)' : 'rgba(239, 68, 68, 0.35)',
+        },
       });
     }
 
-    return { candles, volumes };
+    chartPoints.sort((left, right) => Number(left.candle.time) - Number(right.candle.time));
+
+    return {
+      candles: chartPoints.map((point) => point.candle),
+      volumes: chartPoints.map((point) => point.volume),
+    };
   }
 
   getUnavailableChartData(): TradingChartData {
