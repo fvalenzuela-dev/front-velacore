@@ -1,17 +1,24 @@
-<section class="flex h-full min-h-0 w-full flex-col bg-background">
+<section class="relative flex h-full min-h-0 w-full flex-col bg-background">
   <div class="min-h-0 flex-1">
     <div
       #chartContainer
       class="h-full min-h-[calc(100vh-4rem)] w-full overflow-hidden"
-      aria-label="BTC candlestick chart with volume histogram"
+      aria-label="Trading candlestick chart with volume histogram"
     ></div>
   </div>
+
+  @if (isChartLoading) {
+    <p class="mt-4 rounded-2xl border border-border bg-surface px-4 py-3 text-sm text-muted">
+      Loading chart data for {{ selectedAsset.displayName }}…
+    </p>
+  }
 
   @if (loadError) {
     <p
       class="mt-4 rounded-2xl border border-warning/20 bg-warning/10 px-4 py-3 text-sm text-warning"
     >
-      Binance data could not be loaded, so the chart is using a typed static BTC sample.
+      Market data could not be loaded for {{ selectedAsset.displayName }}. Check that the local
+      backend is running at http://localhost:8091 and restart the Angular dev server if needed.
     </p>
   }
 </section>

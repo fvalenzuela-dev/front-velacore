@@ -1,110 +1,239 @@
-import { Injectable } from '@angular/core';
+import { HttpClient } from '@angular/common/http';
+import { Injectable, inject } from '@angular/core';
+import { firstValueFrom } from 'rxjs';
 import type { CandlestickData, HistogramData, UTCTimestamp } from 'lightweight-charts';
+import type { TradeableAsset, TradeableAssetProvider } from './trading-asset-catalog';
 
-export type BinanceKline = [
-  number,
-  string,
-  string,
-  string,
-  string,
-  string,
-  number,
-  string,
-  number,
-  string,
-  string,
-  string,
-];
+export interface BackendMarketDataCandle {
+  timestamp: string;
+  open: number;
+  high: number;
+  low: number;
+  close: number;
+  volume: number;
+}
+
+export interface BackendMarketDataResponse {
+  provider: TradeableAssetProvider;
+  symbol: string;
+  interval: string;
+  range?: string | null;
+  candles?: BackendMarketDataCandle[];
+}
+
+export interface BackendTwelveDataStock {
+  symbol: string;
+  name?: string | null;
+  instrument_name?: string | null;
+  exchange?: string | null;
+  country?: string | null;
+  type?: string | null;
+}
+
+export interface BackendTwelveDataStocksResponse {
+  provider: 'twelve-data';
+  stocks?: BackendTwelveDataStock[];
+}
+
+export interface BackendTwelveDataSymbolSearchResponse {
+  provider: 'twelve-data';
+  symbols?: BackendTwelveDataStock[];
+}
 
 export interface TradingChartData {
   candles: CandlestickData[];
   volumes: HistogramData[];
-  source: 'binance' | 'fallback';
+  source: TradeableAssetProvider | 'unavailable';
 }
 
 @Injectable({ providedIn: 'root' })
 export class TradingMarketDataService {
-  private readonly binanceKlinesUrl =
-    'https://api.binance.com/api/v3/klines?symbol=BTCUSDT&interval=1d&limit=90';
+  private readonly http = inject(HttpClient);
+  private readonly backendBaseUrl = globalThis.location.origin;
 
-  async loadBitcoinChartData(): Promise<TradingChartData> {
+  async loadNasdaqCommonStocks(): Promise<readonly TradeableAsset[]> {
     try {
-      const response = await fetch(this.binanceKlinesUrl);
+      const stocksUrl = this.buildNasdaqCommonStocksUrl();
+      const stockList = await firstValueFrom(
+        this.http.get<BackendTwelveDataStocksResponse>(this.toAllowedBackendRequestPath(stocksUrl)),
+      );
+      return this.mapTwelveDataStockAssets(stockList.stocks ?? []);
+    } catch {
+      return [];
+    }
+  }
 
-      if (!response.ok) {
-        throw new Error(`Binance request failed with ${response.status}`);
-      }
+  async searchTwelveDataSymbols(query: string): Promise<readonly TradeableAsset[]> {
+    try {
+      const searchUrl = this.buildTwelveDataSymbolSearchUrl(query);
+      const searchResults = await firstValueFrom(
+        this.http.get<BackendTwelveDataSymbolSearchResponse>(
+          this.toAllowedBackendRequestPath(searchUrl),
+        ),
+      );
+      return this.mapTwelveDataStockAssets(searchResults.symbols ?? []);
+    } catch {
+      return [];
+    }
+  }
 
-      const klines = (await response.json()) as BinanceKline[];
-      const mapped = this.mapBinanceKlines(klines);
+  async loadAssetChartData(asset: TradeableAsset): Promise<TradingChartData> {
+    try {
+      const marketDataUrl = this.buildMarketDataUrl(asset);
+      const marketData = await firstValueFrom(
+        this.http.get<BackendMarketDataResponse>(this.toAllowedBackendRequestPath(marketDataUrl)),
+      );
+      this.assertMarketDataMatchesAsset(marketData, asset);
+      const mapped = this.mapBackendMarketData(marketData);
 
       if (mapped.candles.length === 0) {
-        throw new Error('Binance response did not contain valid candles');
+        throw new Error('Market data response did not contain valid candles');
       }
 
       return {
         ...mapped,
-        source: 'binance',
+        source: marketData.provider,
       };
     } catch {
-      return this.getFallbackChartData();
+      return this.getUnavailableChartData();
     }
   }
 
-  mapBinanceKlines(klines: BinanceKline[]): Omit<TradingChartData, 'source'> {
-    const candles: CandlestickData[] = [];
-    const volumes: HistogramData[] = [];
+  buildNasdaqCommonStocksUrl(): URL {
+    const url = new URL('/market-data/twelve-data/stocks', this.backendBaseUrl);
+    url.search = 'exchange=NASDAQ&country=United%20States&type=Common%20Stock';
+    return url;
+  }
 
-    for (const kline of klines) {
-      const time = Math.floor(kline[0] / 1000) as UTCTimestamp;
-      const open = Number(kline[1]);
-      const high = Number(kline[2]);
-      const low = Number(kline[3]);
-      const close = Number(kline[4]);
-      const volume = Number(kline[5]);
+  buildTwelveDataSymbolSearchUrl(query: string): URL {
+    const url = new URL('/market-data/twelve-data/symbol-search', this.backendBaseUrl);
+    url.search = new URLSearchParams({ q: query.trim() }).toString();
+    return url;
+  }
 
-      if (![open, high, low, close, volume].every(Number.isFinite)) {
+  buildMarketDataUrl(asset: TradeableAsset): URL {
+    const symbol = encodeURIComponent(asset.backendSymbol ?? asset.symbol);
+
+    if (asset.provider === 'binance') {
+      const url = new URL(`/market-data/binance/${symbol}`, this.backendBaseUrl);
+      url.search = new URLSearchParams({ interval: '1d', limit: '90' }).toString();
+      return url;
+    }
+
+    if (asset.provider === 'twelve-data') {
+      const url = new URL(`/market-data/twelve-data/${symbol}`, this.backendBaseUrl);
+      const params = new URLSearchParams({ interval: '1day', outputsize: '90' });
+
+      if (asset.exchange) {
+        params.set('exchange', asset.exchange);
+      }
+
+      if (asset.assetType === 'stock' || asset.assetType === 'etf') {
+        params.set('asset_type', asset.assetType);
+      }
+
+      url.search = params.toString();
+      return url;
+    }
+
+    const url = new URL(`/market-data/yahoo/${symbol}`, this.backendBaseUrl);
+    url.search = new URLSearchParams({ period: '3mo', interval: '1d' }).toString();
+    return url;
+  }
+
+  private mapTwelveDataStockAssets(
+    stocks: readonly BackendTwelveDataStock[],
+  ): readonly TradeableAsset[] {
+    return stocks
+      .filter((stock) => stock.symbol.trim().length > 0)
+      .map((stock) => {
+        const symbol = stock.symbol.trim().toUpperCase();
+        const exchange = this.trimOptional(stock.exchange) ?? 'NASDAQ';
+        return {
+          id: `stock-${symbol.toLowerCase()}-${exchange.toLowerCase()}`,
+          symbol,
+          displayName:
+            this.trimOptional(stock.name) ?? this.trimOptional(stock.instrument_name) ?? symbol,
+          category: 'stock',
+          provider: 'twelve-data',
+          exchange,
+          assetType: 'stock',
+        } satisfies TradeableAsset;
+      });
+  }
+
+  private trimOptional(value: string | null | undefined): string | undefined {
+    const trimmedValue = value?.trim();
+    return trimmedValue && trimmedValue.length > 0 ? trimmedValue : undefined;
+  }
+
+  private assertMarketDataMatchesAsset(
+    marketData: BackendMarketDataResponse,
+    asset: TradeableAsset,
+  ): void {
+    const expectedSymbol = asset.backendSymbol ?? asset.symbol;
+
+    if (marketData.provider !== asset.provider || marketData.symbol !== expectedSymbol) {
+      throw new Error('Market data response did not match the requested asset');
+    }
+  }
+
+  private toAllowedBackendRequestPath(url: URL): string {
+    this.assertAllowedBackendUrl(url);
+    return `${url.pathname}${url.search}`;
+  }
+
+  private assertAllowedBackendUrl(url: URL): void {
+    const allowedOrigin = new URL(this.backendBaseUrl).origin;
+    const allowedPathPrefixes = [
+      '/market-data/binance/',
+      '/market-data/twelve-data/',
+      '/market-data/yahoo/',
+    ];
+
+    if (
+      url.origin !== allowedOrigin ||
+      !allowedPathPrefixes.some((pathPrefix) => url.pathname.startsWith(pathPrefix))
+    ) {
+      throw new Error('Blocked non-allowlisted market data URL');
+    }
+  }
+
+  mapBackendMarketData(response: BackendMarketDataResponse): Omit<TradingChartData, 'source'> {
+    const chartPoints: { candle: CandlestickData; volume: HistogramData }[] = [];
+
+    for (const candle of response.candles ?? []) {
+      const timeInSeconds = Date.parse(candle.timestamp) / 1000;
+      const open = Number(candle.open);
+      const high = Number(candle.high);
+      const low = Number(candle.low);
+      const close = Number(candle.close);
+      const volume = Number(candle.volume);
+
+      if (![timeInSeconds, open, high, low, close, volume].every(Number.isFinite)) {
         continue;
       }
 
-      candles.push({ time, open, high, low, close });
-      volumes.push({
-        time,
-        value: volume,
-        color: close >= open ? 'rgba(34, 197, 94, 0.35)' : 'rgba(239, 68, 68, 0.35)',
+      const time = Math.floor(timeInSeconds) as UTCTimestamp;
+      chartPoints.push({
+        candle: { time, open, high, low, close },
+        volume: {
+          time,
+          value: volume,
+          color: close >= open ? 'rgba(34, 197, 94, 0.35)' : 'rgba(239, 68, 68, 0.35)',
+        },
       });
     }
 
-    return { candles, volumes };
+    chartPoints.sort((left, right) => Number(left.candle.time) - Number(right.candle.time));
+
+    return {
+      candles: chartPoints.map((point) => point.candle),
+      volumes: chartPoints.map((point) => point.volume),
+    };
   }
 
-  getFallbackChartData(): TradingChartData {
-    const baseTime = Date.UTC(2026, 0, 1) / 1000;
-    const fallbackCandles: Omit<CandlestickData, 'time'>[] = [
-      { open: 93450, high: 96120, low: 92140, close: 95520 },
-      { open: 95520, high: 97280, low: 94890, close: 96740 },
-      { open: 96740, high: 98210, low: 95670, close: 96110 },
-      { open: 96110, high: 98880, low: 95940, close: 98420 },
-      { open: 98420, high: 100350, low: 97600, close: 99870 },
-      { open: 99870, high: 101240, low: 98990, close: 100940 },
-      { open: 100940, high: 102600, low: 99520, close: 100120 },
-      { open: 100120, high: 101880, low: 98240, close: 99080 },
-      { open: 99080, high: 100760, low: 97820, close: 100450 },
-      { open: 100450, high: 103100, low: 99920, close: 102780 },
-      { open: 102780, high: 104200, low: 101880, close: 103640 },
-      { open: 103640, high: 105500, low: 102300, close: 104920 },
-    ];
-
-    const candles = fallbackCandles.map((candle, index) => ({
-      ...candle,
-      time: (baseTime + index * 86_400) as UTCTimestamp,
-    }));
-    const volumes = candles.map((candle, index) => ({
-      time: candle.time,
-      value: 18_000 + index * 1_750,
-      color: candle.close >= candle.open ? 'rgba(34, 197, 94, 0.35)' : 'rgba(239, 68, 68, 0.35)',
-    }));
-
-    return { candles, volumes, source: 'fallback' };
+  getUnavailableChartData(): TradingChartData {
+    return { candles: [], volumes: [], source: 'unavailable' };
   }
 }
