@@ -144,7 +144,7 @@ describe('App', () => {
       button.textContent?.includes('Stocks'),
     );
     expect(Boolean(stocksButton)).toBe(true);
-    (stocksButton as HTMLButtonElement).click();
+    stocksButton!.click();
     fixture.detectChanges();
 
     expect(loadNasdaqCommonStocks).toHaveBeenCalledOnce();
