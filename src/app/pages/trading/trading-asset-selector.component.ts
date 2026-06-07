@@ -45,13 +45,13 @@ export class TradingAssetSelectorComponent {
 
   private keepFocusInsideDialog(event: KeyboardEvent): void {
     const focusableElements = this.getFocusableDialogElements();
-    const firstElement = focusableElements[0];
 
-    if (!firstElement) {
+    if (focusableElements.length === 0) {
       return;
     }
 
-    const lastElement = focusableElements.at(-1)!;
+    const firstElement = focusableElements[0];
+    const lastElement = focusableElements[focusableElements.length - 1];
     this.wrapDialogFocus(event, firstElement, lastElement);
   }
 

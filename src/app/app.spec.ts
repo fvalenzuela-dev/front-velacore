@@ -143,8 +143,11 @@ describe('App', () => {
     const stocksButton = Array.from(hostHTMLElement.querySelectorAll('button')).find((button) =>
       button.textContent?.includes('Stocks'),
     );
-    expect(Boolean(stocksButton)).toBe(true);
-    stocksButton!.click();
+    if (!(stocksButton instanceof HTMLButtonElement)) {
+      throw new Error('Stocks category button was not found.');
+    }
+
+    stocksButton.click();
     fixture.detectChanges();
 
     expect(loadNasdaqCommonStocks).toHaveBeenCalledOnce();
