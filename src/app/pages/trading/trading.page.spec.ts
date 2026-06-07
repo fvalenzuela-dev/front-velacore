@@ -1,12 +1,14 @@
 import { TestBed } from '@angular/core/testing';
 import type { UTCTimestamp } from 'lightweight-charts';
 import { TradingPage } from './trading.page';
+import { TradingAssetSelectionService } from './trading-asset-selection.service';
 import { TradingMarketDataService, type TradingChartData } from './trading-market-data.service';
 
 const chartMocks = vi.hoisted(() => {
   const candleSeries = { setData: vi.fn() };
   const volumeSeries = { setData: vi.fn() };
   const fitContent = vi.fn();
+  const priceScaleApplyOptions = vi.fn();
   const resize = vi.fn();
   const remove = vi.fn();
   const observe = vi.fn();
@@ -16,12 +18,13 @@ const chartMocks = vi.hoisted(() => {
     candleSeries,
     volumeSeries,
     fitContent,
+    priceScaleApplyOptions,
     resize,
     remove,
     observe,
     disconnect,
     addSeries: vi.fn().mockReturnValueOnce(candleSeries).mockReturnValueOnce(volumeSeries),
-    priceScale: vi.fn(() => ({ applyOptions: vi.fn() })),
+    priceScale: vi.fn(() => ({ applyOptions: priceScaleApplyOptions })),
     createChart: vi.fn(() => ({
       addSeries: chartMocks.addSeries,
       priceScale: chartMocks.priceScale,
@@ -65,20 +68,10 @@ const chartData: TradingChartData = {
   volumes: [{ time: 1_767_225_600 as UTCTimestamp, value: 1500, color: 'rgba(34, 197, 94, 0.35)' }],
 };
 
-function findButtonByText(hostHTMLElement: HTMLElement, text: string): HTMLButtonElement {
-  const button = Array.from(hostHTMLElement.querySelectorAll('button')).find((candidate) =>
-    candidate.textContent?.includes(text),
-  );
-
-  if (!(button instanceof HTMLButtonElement)) {
-    throw new Error(`Button with text "${text}" was not found.`);
-  }
-
-  return button;
-}
-
 describe('TradingPage', () => {
   let loadAssetChartData: ReturnType<typeof vi.fn>;
+  let loadNasdaqCommonStocks: ReturnType<typeof vi.fn>;
+  let searchTwelveDataSymbols: ReturnType<typeof vi.fn>;
 
   beforeEach(async () => {
     chartMocks.addSeries.mockClear();
@@ -88,6 +81,7 @@ describe('TradingPage', () => {
     chartMocks.candleSeries.setData.mockClear();
     chartMocks.volumeSeries.setData.mockClear();
     chartMocks.fitContent.mockClear();
+    chartMocks.priceScaleApplyOptions.mockClear();
     chartMocks.resize.mockClear();
     chartMocks.remove.mockClear();
     chartMocks.observe.mockClear();
@@ -96,12 +90,48 @@ describe('TradingPage', () => {
     chartMocks.priceScale.mockClear();
     ResizeObserverMock.current = undefined;
     loadAssetChartData = vi.fn().mockResolvedValue(chartData);
+    loadNasdaqCommonStocks = vi.fn().mockResolvedValue([
+      {
+        id: 'stock-tsla-nasdaq',
+        symbol: 'TSLA',
+        displayName: 'Tesla Inc.',
+        category: 'stock',
+        provider: 'twelve-data',
+        exchange: 'NASDAQ',
+        assetType: 'stock',
+      },
+      {
+        id: 'stock-aapl-nasdaq',
+        symbol: 'AAPL',
+        displayName: 'Apple Inc.',
+        category: 'stock',
+        provider: 'twelve-data',
+        exchange: 'NASDAQ',
+        assetType: 'stock',
+      },
+    ]);
+    searchTwelveDataSymbols = vi.fn().mockResolvedValue([
+      {
+        id: 'stock-tsla-nasdaq',
+        symbol: 'TSLA',
+        displayName: 'Tesla, Inc.',
+        category: 'stock',
+        provider: 'twelve-data',
+        exchange: 'NASDAQ',
+        assetType: 'stock',
+      },
+    ]);
 
     vi.stubGlobal('ResizeObserver', ResizeObserverMock);
 
     await TestBed.configureTestingModule({
       imports: [TradingPage],
-      providers: [{ provide: TradingMarketDataService, useValue: { loadAssetChartData } }],
+      providers: [
+        {
+          provide: TradingMarketDataService,
+          useValue: { loadAssetChartData, loadNasdaqCommonStocks, searchTwelveDataSymbols },
+        },
+      ],
     }).compileComponents();
   });
 
@@ -115,7 +145,7 @@ describe('TradingPage', () => {
     expect(fixture.componentInstance).toBeTruthy();
   });
 
-  it('should render the trading chart layout with an asset selector trigger', () => {
+  it('should render the trading chart layout without a page-level asset selector overlay', () => {
     const fixture = TestBed.createComponent(TradingPage);
     fixture.detectChanges();
 
@@ -125,9 +155,8 @@ describe('TradingPage', () => {
     );
     const selectorTrigger = hostHTMLElement.querySelector('[aria-haspopup="dialog"]');
 
-    expect(hostHTMLElement.textContent).toContain('Selected asset');
-    expect(hostHTMLElement.textContent).toContain('Bitcoin / Tether');
-    expect(selectorTrigger?.textContent).toContain('Select asset');
+    expect(hostHTMLElement.textContent).not.toContain('Selected asset');
+    expect(selectorTrigger).toBeNull();
     expect(chartContainer).toBeTruthy();
     expect(chartContainer?.classList.contains('h-full')).toBe(true);
     expect(chartContainer?.classList.contains('min-h-[calc(100vh-4rem)]')).toBe(true);
@@ -145,6 +174,8 @@ describe('TradingPage', () => {
     expect(loadAssetChartData.mock.calls[0][0]).toMatchObject({ symbol: 'BTCUSDT' });
     expect(chartMocks.candleSeries.setData).toHaveBeenCalledWith(chartData.candles);
     expect(chartMocks.volumeSeries.setData).toHaveBeenCalledWith(chartData.volumes);
+    expect(chartMocks.priceScale).toHaveBeenCalledWith('right');
+    expect(chartMocks.priceScaleApplyOptions).toHaveBeenCalledWith({ autoScale: true });
     expect(chartMocks.fitContent).toHaveBeenCalledOnce();
   });
 
@@ -162,79 +193,23 @@ describe('TradingPage', () => {
     expect(chartMocks.remove).toHaveBeenCalledOnce();
   });
 
-  it('should open and close the asset selector popup', () => {
+  it('should load chart data when the shared selected asset changes', async () => {
     const fixture = TestBed.createComponent(TradingPage);
     fixture.detectChanges();
+    await fixture.whenStable();
 
-    const hostHTMLElement = fixture.nativeElement as HTMLElement;
-    findButtonByText(hostHTMLElement, 'Select asset').click();
-    fixture.detectChanges();
+    const assetSelection = TestBed.inject(TradingAssetSelectionService);
+    const teslaAsset = {
+      id: 'stock-tsla-nasdaq',
+      symbol: 'TSLA',
+      displayName: 'Tesla Inc.',
+      category: 'stock',
+      provider: 'twelve-data',
+      exchange: 'NASDAQ',
+      assetType: 'stock',
+    } as const;
 
-    expect(hostHTMLElement.querySelector('[role="dialog"]')).toBeTruthy();
-    expect(hostHTMLElement.textContent).toContain('Choose an asset');
-    expect(hostHTMLElement.textContent).toContain('Cryptocurrencies');
-    expect(hostHTMLElement.textContent).toContain('Bitcoin / Tether');
-
-    const closeButton = hostHTMLElement.querySelector('[aria-label="Close asset selector"]');
-    expect(closeButton).toBeTruthy();
-    expect(document.activeElement).toBe(closeButton);
-    (closeButton as HTMLButtonElement).click();
-    fixture.detectChanges();
-
-    expect(hostHTMLElement.querySelector('[role="dialog"]')).toBeNull();
-  });
-
-  it('should close the asset selector with Escape and restore trigger focus', () => {
-    const fixture = TestBed.createComponent(TradingPage);
-    fixture.detectChanges();
-
-    const hostHTMLElement = fixture.nativeElement as HTMLElement;
-    const selectorTrigger = findButtonByText(hostHTMLElement, 'Select asset');
-    selectorTrigger.click();
-    fixture.detectChanges();
-
-    const dialog = hostHTMLElement.querySelector('[role="dialog"]');
-    expect(dialog).toBeTruthy();
-    dialog?.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
-    fixture.detectChanges();
-
-    expect(hostHTMLElement.querySelector('[role="dialog"]')).toBeNull();
-    expect(document.activeElement).toBe(selectorTrigger);
-  });
-
-  it('should switch asset categories in the selector', () => {
-    const fixture = TestBed.createComponent(TradingPage);
-    fixture.detectChanges();
-
-    const hostHTMLElement = fixture.nativeElement as HTMLElement;
-    findButtonByText(hostHTMLElement, 'Select asset').click();
-    fixture.detectChanges();
-
-    expect(hostHTMLElement.textContent).toContain('Ethereum / Tether');
-    expect(hostHTMLElement.textContent).not.toContain('Tesla');
-
-    findButtonByText(hostHTMLElement, 'Stocks').click();
-    fixture.detectChanges();
-
-    expect(hostHTMLElement.textContent).toContain('Tesla');
-    expect(hostHTMLElement.textContent).toContain('Apple');
-    expect(hostHTMLElement.textContent).toContain('Microsoft');
-    expect(hostHTMLElement.textContent).not.toContain('Ethereum / Tether');
-  });
-
-  it('should update the selected asset, load its chart data, and close the popup after selection', async () => {
-    const fixture = TestBed.createComponent(TradingPage);
-    fixture.detectChanges();
-
-    const hostHTMLElement = fixture.nativeElement as HTMLElement;
-    findButtonByText(hostHTMLElement, 'Select asset').click();
-    fixture.detectChanges();
-    findButtonByText(hostHTMLElement, 'Stocks').click();
-    fixture.detectChanges();
-
-    const teslaOption = hostHTMLElement.querySelector('[aria-label="Select Tesla (TSLA)"]');
-    expect(teslaOption).toBeTruthy();
-    (teslaOption as HTMLButtonElement).click();
+    assetSelection.selectAsset(teslaAsset);
     fixture.detectChanges();
     await fixture.whenStable();
 
@@ -242,10 +217,7 @@ describe('TradingPage', () => {
       selectedAsset: { symbol: string; displayName: string };
     };
     expect(component.selectedAsset.symbol).toBe('TSLA');
-    expect(component.selectedAsset.displayName).toBe('Tesla');
-    expect(hostHTMLElement.querySelector('[role="dialog"]')).toBeNull();
-    expect(hostHTMLElement.textContent).toContain('Tesla');
-    expect(hostHTMLElement.textContent).toContain('TSLA');
+    expect(component.selectedAsset.displayName).toBe('Tesla Inc.');
     expect(loadAssetChartData).toHaveBeenCalledTimes(2);
     expect(loadAssetChartData.mock.calls[1][0]).toMatchObject({
       symbol: 'TSLA',
@@ -292,17 +264,21 @@ describe('TradingPage', () => {
     const fixture = TestBed.createComponent(TradingPage);
     fixture.detectChanges();
     const hostHTMLElement = fixture.nativeElement as HTMLElement;
-    findButtonByText(hostHTMLElement, 'Select asset').click();
-    fixture.detectChanges();
-    findButtonByText(hostHTMLElement, 'Stocks').click();
-    fixture.detectChanges();
-    const teslaOption = hostHTMLElement.querySelector('[aria-label="Select Tesla (TSLA)"]');
-    (teslaOption as HTMLButtonElement).click();
+    const assetSelection = TestBed.inject(TradingAssetSelectionService);
+    assetSelection.selectAsset({
+      id: 'stock-tsla-nasdaq',
+      symbol: 'TSLA',
+      displayName: 'Tesla Inc.',
+      category: 'stock',
+      provider: 'twelve-data',
+      exchange: 'NASDAQ',
+      assetType: 'stock',
+    });
     fixture.detectChanges();
 
     expect(chartMocks.candleSeries.setData).toHaveBeenLastCalledWith([]);
     expect(chartMocks.volumeSeries.setData).toHaveBeenLastCalledWith([]);
-    expect(hostHTMLElement.textContent).toContain('Loading chart data for Tesla');
+    expect(hostHTMLElement.textContent).toContain('Loading chart data for Tesla Inc.');
 
     resolveTeslaData();
     await fixture.whenStable();

@@ -1,3 +1,5 @@
+import { provideHttpClient } from '@angular/common/http';
+import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { TestBed } from '@angular/core/testing';
 import type { UTCTimestamp } from 'lightweight-charts';
 import type { TradeableAsset } from './trading-asset-catalog';
@@ -35,33 +37,121 @@ const sp500Asset: TradeableAsset = {
 };
 
 describe('TradingMarketDataService', () => {
+  const backendBaseUrl = globalThis.location.origin;
+  let httpMock: HttpTestingController;
   let service: TradingMarketDataService;
 
   beforeEach(() => {
-    TestBed.configureTestingModule({});
+    TestBed.configureTestingModule({
+      providers: [provideHttpClient(), provideHttpClientTesting()],
+    });
+    httpMock = TestBed.inject(HttpTestingController);
     service = TestBed.inject(TradingMarketDataService);
   });
 
   afterEach(() => {
-    vi.unstubAllGlobals();
+    httpMock.verify();
   });
 
   it('should build the Binance backend URL for crypto assets', () => {
     expect(service.buildMarketDataUrl(btcAsset).href).toBe(
-      'http://localhost:8091/market-data/binance/BTCUSDT?interval=1d&limit=90',
+      `${backendBaseUrl}/market-data/binance/BTCUSDT?interval=1d&limit=90`,
     );
   });
 
   it('should build the Twelve Data backend URL for stock and ETF assets', () => {
     expect(service.buildMarketDataUrl(teslaAsset).href).toBe(
-      'http://localhost:8091/market-data/twelve-data/TSLA?interval=1day&outputsize=90&exchange=NASDAQ&asset_type=stock',
+      `${backendBaseUrl}/market-data/twelve-data/TSLA?interval=1day&outputsize=90&exchange=NASDAQ&asset_type=stock`,
     );
   });
 
   it('should build the Yahoo backend URL using backend symbols when present', () => {
     expect(service.buildMarketDataUrl(sp500Asset).href).toBe(
-      'http://localhost:8091/market-data/yahoo/%5EGSPC?period=3mo&interval=1d',
+      `${backendBaseUrl}/market-data/yahoo/%5EGSPC?period=3mo&interval=1d`,
     );
+  });
+
+  it('should build the NASDAQ common stocks backend URL', () => {
+    expect(service.buildNasdaqCommonStocksUrl().href).toBe(
+      `${backendBaseUrl}/market-data/twelve-data/stocks?exchange=NASDAQ&country=United%20States&type=Common%20Stock`,
+    );
+  });
+
+  it('should build the Twelve Data symbol search backend URL', () => {
+    expect(service.buildTwelveDataSymbolSearchUrl(' ts ').href).toBe(
+      `${backendBaseUrl}/market-data/twelve-data/symbol-search?q=ts`,
+    );
+  });
+
+  it('should map Twelve Data symbol search results into stock assets', async () => {
+    const stocksPromise = service.searchTwelveDataSymbols('ts');
+    const request = httpMock.expectOne('/market-data/twelve-data/symbol-search?q=ts');
+    request.flush({
+      provider: 'twelve-data',
+      symbols: [
+        {
+          symbol: 'TSLA',
+          name: null,
+          instrument_name: 'Tesla, Inc.',
+          exchange: 'NASDAQ',
+          country: 'United States',
+          type: null,
+        },
+      ],
+    });
+
+    await expect(stocksPromise).resolves.toEqual([
+      {
+        id: 'stock-tsla-nasdaq',
+        symbol: 'TSLA',
+        displayName: 'Tesla, Inc.',
+        category: 'stock',
+        provider: 'twelve-data',
+        exchange: 'NASDAQ',
+        assetType: 'stock',
+      },
+    ]);
+  });
+
+  it('should map NASDAQ common stocks from the backend list endpoint', async () => {
+    const stocksPromise = service.loadNasdaqCommonStocks();
+    const request = httpMock.expectOne(
+      '/market-data/twelve-data/stocks?exchange=NASDAQ&country=United%20States&type=Common%20Stock',
+    );
+    request.flush({
+      provider: 'twelve-data',
+      stocks: [
+        {
+          symbol: ' aapl ',
+          name: ' Apple Inc. ',
+          exchange: 'NASDAQ',
+          country: 'United States',
+          type: 'Common Stock',
+        },
+      ],
+    });
+
+    await expect(stocksPromise).resolves.toEqual([
+      {
+        id: 'stock-aapl-nasdaq',
+        symbol: 'AAPL',
+        displayName: 'Apple Inc.',
+        category: 'stock',
+        provider: 'twelve-data',
+        exchange: 'NASDAQ',
+        assetType: 'stock',
+      },
+    ]);
+  });
+
+  it('should return an empty stock list when the backend stock request fails', async () => {
+    const stocksPromise = service.loadNasdaqCommonStocks();
+    const request = httpMock.expectOne(
+      '/market-data/twelve-data/stocks?exchange=NASDAQ&country=United%20States&type=Common%20Stock',
+    );
+    request.error(new ProgressEvent('network unavailable'));
+
+    await expect(stocksPromise).resolves.toEqual([]);
   });
 
   it('should map backend candles to candlestick and volume data', () => {
@@ -161,70 +251,64 @@ describe('TradingMarketDataService', () => {
   });
 
   it('should return backend data when the request succeeds', async () => {
-    vi.stubGlobal(
-      'fetch',
-      vi.fn().mockResolvedValue({
-        ok: true,
-        json: vi.fn().mockResolvedValue({
-          provider: 'twelve-data',
-          symbol: 'TSLA',
-          interval: '1day',
-          candles: [
-            {
-              timestamp: '2026-01-01T00:00:00Z',
-              open: 100,
-              high: 110,
-              low: 90,
-              close: 105,
-              volume: 2000,
-            },
-          ],
-        }),
-      }),
+    const dataPromise = service.loadAssetChartData(teslaAsset);
+    const request = httpMock.expectOne(
+      '/market-data/twelve-data/TSLA?interval=1day&outputsize=90&exchange=NASDAQ&asset_type=stock',
     );
+    request.flush({
+      provider: 'twelve-data',
+      symbol: 'TSLA',
+      interval: '1day',
+      candles: [
+        {
+          timestamp: '2026-01-01T00:00:00Z',
+          open: 100,
+          high: 110,
+          low: 90,
+          close: 105,
+          volume: 2000,
+        },
+      ],
+    });
 
-    const data = await service.loadAssetChartData(teslaAsset);
-
-    expect(fetch).toHaveBeenCalledWith(
-      'http://localhost:8091/market-data/twelve-data/TSLA?interval=1day&outputsize=90&exchange=NASDAQ&asset_type=stock',
-    );
+    const data = await dataPromise;
     expect(data.source).toBe('twelve-data');
     expect(data.candles).toHaveLength(1);
     expect(data.volumes).toHaveLength(1);
   });
 
   it('should reject backend data that does not match the requested asset', async () => {
-    vi.stubGlobal(
-      'fetch',
-      vi.fn().mockResolvedValue({
-        ok: true,
-        json: vi.fn().mockResolvedValue({
-          provider: 'binance',
-          symbol: 'BTCUSDT',
-          interval: '1d',
-          candles: [
-            {
-              timestamp: '2026-01-01T00:00:00Z',
-              open: 100,
-              high: 110,
-              low: 90,
-              close: 105,
-              volume: 2000,
-            },
-          ],
-        }),
-      }),
+    const dataPromise = service.loadAssetChartData(teslaAsset);
+    const request = httpMock.expectOne(
+      '/market-data/twelve-data/TSLA?interval=1day&outputsize=90&exchange=NASDAQ&asset_type=stock',
     );
+    request.flush({
+      provider: 'binance',
+      symbol: 'BTCUSDT',
+      interval: '1d',
+      candles: [
+        {
+          timestamp: '2026-01-01T00:00:00Z',
+          open: 100,
+          high: 110,
+          low: 90,
+          close: 105,
+          volume: 2000,
+        },
+      ],
+    });
 
-    const data = await service.loadAssetChartData(teslaAsset);
+    const data = await dataPromise;
 
     expect(data).toEqual({ candles: [], volumes: [], source: 'unavailable' });
   });
 
   it('should return unavailable data when the backend request fails', async () => {
-    vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('network unavailable')));
+    const dataPromise = service.loadAssetChartData(btcAsset);
+    const request = httpMock.expectOne('/market-data/binance/BTCUSDT?interval=1d&limit=90');
+    request.error(new ProgressEvent('network unavailable'));
 
-    const data = await service.loadAssetChartData(btcAsset);
+    const data = await dataPromise;
 
     expect(data).toEqual({ candles: [], volumes: [], source: 'unavailable' });
   });

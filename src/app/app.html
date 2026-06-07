@@ -1,7 +1,5 @@
 <main class="grid min-h-screen grid-rows-[4rem_1fr] bg-background text-foreground">
-  <header
-    class="relative z-50 flex items-center border-border border-b bg-surface/95 backdrop-blur"
-  >
+  <header class="relative z-[9999] flex items-center border-border border-b bg-surface/95">
     <nav
       class="group/menu relative flex h-full w-16 items-center justify-center border-border border-r"
       aria-label="Main navigation"
@@ -102,7 +100,9 @@
       </div>
     </nav>
 
-    <div class="h-full flex-1" aria-label="Top bar"></div>
+    <div class="flex h-full flex-1 items-center px-4" aria-label="Top bar">
+      <app-trading-asset-selector />
+    </div>
   </header>
 
   <section class="grid min-h-0 grid-cols-[4rem_1fr_4rem]">

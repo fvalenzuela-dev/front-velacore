@@ -1,4 +1,6 @@
-import { Injectable } from '@angular/core';
+import { HttpClient } from '@angular/common/http';
+import { Injectable, inject } from '@angular/core';
+import { firstValueFrom } from 'rxjs';
 import type { CandlestickData, HistogramData, UTCTimestamp } from 'lightweight-charts';
 import type { TradeableAsset, TradeableAssetProvider } from './trading-asset-catalog';
 
@@ -19,6 +21,25 @@ export interface BackendMarketDataResponse {
   candles?: BackendMarketDataCandle[];
 }
 
+export interface BackendTwelveDataStock {
+  symbol: string;
+  name?: string | null;
+  instrument_name?: string | null;
+  exchange?: string | null;
+  country?: string | null;
+  type?: string | null;
+}
+
+export interface BackendTwelveDataStocksResponse {
+  provider: 'twelve-data';
+  stocks?: BackendTwelveDataStock[];
+}
+
+export interface BackendTwelveDataSymbolSearchResponse {
+  provider: 'twelve-data';
+  symbols?: BackendTwelveDataStock[];
+}
+
 export interface TradingChartData {
   candles: CandlestickData[];
   volumes: HistogramData[];
@@ -27,19 +48,41 @@ export interface TradingChartData {
 
 @Injectable({ providedIn: 'root' })
 export class TradingMarketDataService {
-  private readonly backendBaseUrl = 'http://localhost:8091';
+  private readonly http = inject(HttpClient);
+  private readonly backendBaseUrl = globalThis.location?.origin ?? 'http://localhost:4200';
+
+  async loadNasdaqCommonStocks(): Promise<readonly TradeableAsset[]> {
+    try {
+      const stocksUrl = this.buildNasdaqCommonStocksUrl();
+      const stockList = await firstValueFrom(
+        this.http.get<BackendTwelveDataStocksResponse>(this.toAllowedBackendRequestPath(stocksUrl)),
+      );
+      return this.mapTwelveDataStockAssets(stockList.stocks ?? []);
+    } catch {
+      return [];
+    }
+  }
+
+  async searchTwelveDataSymbols(query: string): Promise<readonly TradeableAsset[]> {
+    try {
+      const searchUrl = this.buildTwelveDataSymbolSearchUrl(query);
+      const searchResults = await firstValueFrom(
+        this.http.get<BackendTwelveDataSymbolSearchResponse>(
+          this.toAllowedBackendRequestPath(searchUrl),
+        ),
+      );
+      return this.mapTwelveDataStockAssets(searchResults.symbols ?? []);
+    } catch {
+      return [];
+    }
+  }
 
   async loadAssetChartData(asset: TradeableAsset): Promise<TradingChartData> {
     try {
       const marketDataUrl = this.buildMarketDataUrl(asset);
-      this.assertAllowedBackendUrl(marketDataUrl);
-      const response = await fetch(marketDataUrl.href);
-
-      if (!response.ok) {
-        throw new Error(`Market data request failed with ${response.status}`);
-      }
-
-      const marketData = (await response.json()) as BackendMarketDataResponse;
+      const marketData = await firstValueFrom(
+        this.http.get<BackendMarketDataResponse>(this.toAllowedBackendRequestPath(marketDataUrl)),
+      );
       this.assertMarketDataMatchesAsset(marketData, asset);
       const mapped = this.mapBackendMarketData(marketData);
 
@@ -54,6 +97,18 @@ export class TradingMarketDataService {
     } catch {
       return this.getUnavailableChartData();
     }
+  }
+
+  buildNasdaqCommonStocksUrl(): URL {
+    const url = new URL('/market-data/twelve-data/stocks', this.backendBaseUrl);
+    url.search = 'exchange=NASDAQ&country=United%20States&type=Common%20Stock';
+    return url;
+  }
+
+  buildTwelveDataSymbolSearchUrl(query: string): URL {
+    const url = new URL('/market-data/twelve-data/symbol-search', this.backendBaseUrl);
+    url.search = new URLSearchParams({ q: query.trim() }).toString();
+    return url;
   }
 
   buildMarketDataUrl(asset: TradeableAsset): URL {
@@ -86,6 +141,26 @@ export class TradingMarketDataService {
     return url;
   }
 
+  private mapTwelveDataStockAssets(
+    stocks: readonly BackendTwelveDataStock[],
+  ): readonly TradeableAsset[] {
+    return stocks
+      .filter((stock) => stock.symbol.trim().length > 0)
+      .map((stock) => {
+        const symbol = stock.symbol.trim().toUpperCase();
+        const exchange = stock.exchange?.trim() || 'NASDAQ';
+        return {
+          id: `stock-${symbol.toLowerCase()}-${exchange.toLowerCase()}`,
+          symbol,
+          displayName: stock.name?.trim() || stock.instrument_name?.trim() || symbol,
+          category: 'stock',
+          provider: 'twelve-data',
+          exchange,
+          assetType: 'stock',
+        } satisfies TradeableAsset;
+      });
+  }
+
   private assertMarketDataMatchesAsset(
     marketData: BackendMarketDataResponse,
     asset: TradeableAsset,
@@ -95,6 +170,11 @@ export class TradingMarketDataService {
     if (marketData.provider !== asset.provider || marketData.symbol !== expectedSymbol) {
       throw new Error('Market data response did not match the requested asset');
     }
+  }
+
+  private toAllowedBackendRequestPath(url: URL): string {
+    this.assertAllowedBackendUrl(url);
+    return `${url.pathname}${url.search}`;
   }
 
   private assertAllowedBackendUrl(url: URL): void {

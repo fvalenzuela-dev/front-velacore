@@ -15,12 +15,9 @@ import {
   type IChartApi,
   type ISeriesApi,
 } from 'lightweight-charts';
-import {
-  TRADEABLE_ASSET_CATEGORIES,
-  TRADEABLE_ASSETS,
-  type TradeableAsset,
-  type TradeableAssetCategory,
-} from './trading-asset-catalog';
+import type { Subscription } from 'rxjs';
+import type { TradeableAsset } from './trading-asset-catalog';
+import { TradingAssetSelectionService } from './trading-asset-selection.service';
 import { TradingMarketDataService, type TradingChartData } from './trading-market-data.service';
 
 @Component({
@@ -30,15 +27,11 @@ import { TradingMarketDataService, type TradingChartData } from './trading-marke
 export class TradingPage implements AfterViewInit, OnDestroy {
   @ViewChild('chartContainer', { static: true })
   private readonly chartContainer?: ElementRef<HTMLDivElement>;
-  @ViewChild('assetSelectorTrigger')
-  private readonly assetSelectorTrigger?: ElementRef<HTMLButtonElement>;
-  @ViewChild('assetSelectorDialog')
-  private readonly assetSelectorDialog?: ElementRef<HTMLDivElement>;
-  @ViewChild('assetSelectorClose')
-  private readonly assetSelectorClose?: ElementRef<HTMLButtonElement>;
 
   private readonly marketData = inject(TradingMarketDataService);
+  private readonly assetSelection = inject(TradingAssetSelectionService);
   private readonly changeDetector = inject(ChangeDetectorRef);
+  private readonly selectedAssetChangesSubscription: Subscription;
   private chart?: IChartApi;
   private candleSeries?: ISeriesApi<'Candlestick'>;
   private volumeSeries?: ISeriesApi<'Histogram'>;
@@ -46,72 +39,23 @@ export class TradingPage implements AfterViewInit, OnDestroy {
   private latestChartDataRequestId = 0;
   private destroyed = false;
 
-  protected readonly assetCategories = TRADEABLE_ASSET_CATEGORIES;
-  protected readonly assets = TRADEABLE_ASSETS;
   protected loadError = false;
   protected isChartLoading = false;
-  protected isAssetSelectorOpen = false;
-  protected selectedAsset: TradeableAsset = TRADEABLE_ASSETS[0];
-  protected selectedCategory: TradeableAssetCategory = this.selectedAsset.category;
 
-  protected get selectedCategoryAssets(): readonly TradeableAsset[] {
-    return this.assets.filter((asset) => asset.category === this.selectedCategory);
+  protected get selectedAsset(): TradeableAsset {
+    return this.assetSelection.selectedAsset();
   }
 
-  protected openAssetSelector(): void {
-    this.selectedCategory = this.selectedAsset.category;
-    this.isAssetSelectorOpen = true;
-    this.changeDetector.detectChanges();
-    this.assetSelectorClose?.nativeElement.focus();
-  }
+  constructor() {
+    this.selectedAssetChangesSubscription = this.assetSelection.selectedAssetChanges.subscribe(
+      (asset) => {
+        if (!this.chart || this.destroyed) {
+          return;
+        }
 
-  protected closeAssetSelector(): void {
-    this.isAssetSelectorOpen = false;
-    this.changeDetector.detectChanges();
-    this.assetSelectorTrigger?.nativeElement.focus();
-  }
-
-  protected trapAssetSelectorFocus(event: KeyboardEvent): void {
-    if (event.key === 'Escape') {
-      this.closeAssetSelector();
-      return;
-    }
-
-    if (event.key !== 'Tab') {
-      return;
-    }
-
-    const focusableElements = Array.from(
-      this.assetSelectorDialog?.nativeElement.querySelectorAll<HTMLButtonElement>('button') ?? [],
-    ).filter((element) => !element.disabled);
-
-    const firstElement = focusableElements[0];
-    const lastElement = focusableElements.at(-1);
-
-    if (!firstElement || !lastElement) {
-      return;
-    }
-
-    if (event.shiftKey && document.activeElement === firstElement) {
-      event.preventDefault();
-      lastElement.focus();
-      return;
-    }
-
-    if (!event.shiftKey && document.activeElement === lastElement) {
-      event.preventDefault();
-      firstElement.focus();
-    }
-  }
-
-  protected selectCategory(category: TradeableAssetCategory): void {
-    this.selectedCategory = category;
-  }
-
-  protected selectAsset(asset: TradeableAsset): void {
-    this.selectedAsset = asset;
-    this.closeAssetSelector();
-    void this.loadSelectedAssetChartData(asset);
+        void this.loadSelectedAssetChartData(asset);
+      },
+    );
   }
 
   async ngAfterViewInit(): Promise<void> {
@@ -124,11 +68,12 @@ export class TradingPage implements AfterViewInit, OnDestroy {
     this.createTradingChart(container);
     this.attachResizeObserver(container);
 
-    await this.loadSelectedAssetChartData();
+    await this.loadSelectedAssetChartData(this.selectedAsset);
   }
 
   ngOnDestroy(): void {
     this.destroyed = true;
+    this.selectedAssetChangesSubscription.unsubscribe();
     this.resizeObserver?.disconnect();
     this.chart?.remove();
   }
@@ -199,11 +144,7 @@ export class TradingPage implements AfterViewInit, OnDestroy {
 
     const data = await this.marketData.loadAssetChartData(asset);
 
-    if (
-      this.destroyed ||
-      requestId !== this.latestChartDataRequestId ||
-      asset.id !== this.selectedAsset.id
-    ) {
+    if (this.destroyed || requestId !== this.latestChartDataRequestId || asset.id !== this.selectedAsset.id) {
       return;
     }
 
@@ -220,7 +161,12 @@ export class TradingPage implements AfterViewInit, OnDestroy {
 
     this.candleSeries?.setData(data.candles);
     this.volumeSeries?.setData(data.volumes);
-    this.chart?.timeScale().fitContent();
+    this.resetVisibleChartScales();
     this.changeDetector.detectChanges();
+  }
+
+  private resetVisibleChartScales(): void {
+    this.chart?.priceScale('right').applyOptions({ autoScale: true });
+    this.chart?.timeScale().fitContent();
   }
 }
