@@ -4,18 +4,6 @@ import { App } from './app';
 import { routes } from './app.routes';
 import { TradingMarketDataService } from './pages/trading/trading-market-data.service';
 
-function findButtonByText(hostHTMLElement: HTMLElement, text: string): HTMLButtonElement {
-  const button = Array.from(hostHTMLElement.querySelectorAll('button')).find((candidate) =>
-    candidate.textContent?.includes(text),
-  );
-
-  if (!(button instanceof HTMLButtonElement)) {
-    throw new Error(`Button with text "${text}" was not found.`);
-  }
-
-  return button;
-}
-
 describe('App', () => {
   let loadNasdaqCommonStocks: ReturnType<typeof vi.fn>;
   let searchTwelveDataSymbols: ReturnType<typeof vi.fn>;
@@ -34,7 +22,9 @@ describe('App', () => {
       },
     ]);
     searchTwelveDataSymbols = vi.fn().mockResolvedValue([]);
-    loadAssetChartData = vi.fn().mockResolvedValue({ candles: [], volumes: [], source: 'unavailable' });
+    loadAssetChartData = vi
+      .fn()
+      .mockResolvedValue({ candles: [], volumes: [], source: 'unavailable' });
 
     await TestBed.configureTestingModule({
       imports: [App],
@@ -78,7 +68,7 @@ describe('App', () => {
     );
 
     expect(shell?.classList.contains('grid-rows-[4rem_1fr]')).toBe(true);
-    expect(header).toBeTruthy();
+    expect(Boolean(header)).toBe(true);
     expect(menu?.classList.contains('w-16')).toBe(true);
     expect(trigger?.textContent?.trim()).toBe('VC');
     expect(trigger?.getAttribute('aria-expanded')).toBe('false');
@@ -97,10 +87,10 @@ describe('App', () => {
 
     expect(trigger?.getAttribute('aria-expanded')).toBe('false');
     expect(floatingPanel?.classList.contains('pointer-events-none')).toBe(true);
-    expect(topBar).toBeTruthy();
+    expect(Boolean(topBar)).toBe(true);
     expect(assetSelector?.textContent?.trim()).toBe('btcusdt');
-    expect(leftBar).toBeTruthy();
-    expect(rightBar).toBeTruthy();
+    expect(Boolean(leftBar)).toBe(true);
+    expect(Boolean(rightBar)).toBe(true);
     expect(contentGrid?.classList.contains('grid-cols-[4rem_1fr_4rem]')).toBe(true);
     expect(linkLabels).toEqual(['Dashboard', 'Trading']);
     expect(linkHrefs).toEqual(['/dashboard', '/trading']);
@@ -120,15 +110,22 @@ describe('App', () => {
     fixture.detectChanges();
 
     const closeButton = hostHTMLElement.querySelector('[aria-label="Close asset selector"]');
-    expect(hostHTMLElement.querySelector('[role="dialog"]')).toBeTruthy();
-    expect(hostHTMLElement.textContent).toContain('Choose an asset');
-    expect(hostHTMLElement.textContent).toContain('Cryptocurrencies');
+    const dialogTitle = hostHTMLElement.querySelector('#asset-selector-title');
+    const categoryButtons = Array.from(
+      hostHTMLElement.querySelectorAll('[aria-label="Asset categories"] button'),
+    );
+
+    expect(Boolean(hostHTMLElement.querySelector('[role="dialog"]'))).toBe(true);
+    expect(dialogTitle?.textContent?.trim()).toBe('Choose an asset');
+    expect(categoryButtons.some((button) => button.textContent?.includes('Cryptocurrencies'))).toBe(
+      true,
+    );
     expect(document.activeElement).toBe(closeButton);
 
     (closeButton as HTMLButtonElement).click();
     fixture.detectChanges();
 
-    expect(hostHTMLElement.querySelector('[role="dialog"]')).toBeNull();
+    expect(Boolean(hostHTMLElement.querySelector('[role="dialog"]'))).toBe(false);
     expect(document.activeElement).toBe(topBarAssetSelector);
   });
 
@@ -137,26 +134,37 @@ describe('App', () => {
     fixture.detectChanges();
 
     const hostHTMLElement = fixture.nativeElement as HTMLElement;
-    findButtonByText(hostHTMLElement, 'btcusdt').click();
+    const topBarAssetSelector = hostHTMLElement.querySelector(
+      '[aria-label="Top bar"] [aria-haspopup="dialog"]',
+    );
+    (topBarAssetSelector as HTMLButtonElement).click();
     fixture.detectChanges();
-    findButtonByText(hostHTMLElement, 'Stocks').click();
+
+    const stocksButton = Array.from(hostHTMLElement.querySelectorAll('button')).find((button) =>
+      button.textContent?.includes('Stocks'),
+    );
+    expect(Boolean(stocksButton)).toBe(true);
+    (stocksButton as HTMLButtonElement).click();
     fixture.detectChanges();
 
     expect(loadNasdaqCommonStocks).toHaveBeenCalledOnce();
-    expect(hostHTMLElement.textContent).toContain('Loading NASDAQ common stocks');
+    const stockLoadingNotice = Array.from(hostHTMLElement.querySelectorAll('p')).find((paragraph) =>
+      paragraph.textContent?.includes('Loading NASDAQ common stocks'),
+    );
+    expect(Boolean(stockLoadingNotice)).toBe(true);
 
     await fixture.whenStable();
     fixture.detectChanges();
 
     const teslaOption = hostHTMLElement.querySelector('[aria-label="Select Tesla Inc. (TSLA)"]');
-    expect(teslaOption).toBeTruthy();
+    expect(Boolean(teslaOption)).toBe(true);
     (teslaOption as HTMLButtonElement).click();
     fixture.detectChanges();
 
-    const topBarAssetSelector = hostHTMLElement.querySelector(
+    const updatedTopBarAssetSelector = hostHTMLElement.querySelector(
       '[aria-label="Top bar"] [aria-haspopup="dialog"]',
     );
-    expect(hostHTMLElement.querySelector('[role="dialog"]')).toBeNull();
-    expect(topBarAssetSelector?.textContent?.trim()).toBe('tsla');
+    expect(Boolean(hostHTMLElement.querySelector('[role="dialog"]'))).toBe(false);
+    expect(updatedTopBarAssetSelector?.textContent?.trim()).toBe('tsla');
   });
 });

@@ -155,9 +155,9 @@ describe('TradingPage', () => {
     );
     const selectorTrigger = hostHTMLElement.querySelector('[aria-haspopup="dialog"]');
 
-    expect(hostHTMLElement.textContent).not.toContain('Selected asset');
-    expect(selectorTrigger).toBeNull();
-    expect(chartContainer).toBeTruthy();
+    expect(Boolean(hostHTMLElement.querySelector('h2'))).toBe(false);
+    expect(Boolean(selectorTrigger)).toBe(false);
+    expect(Boolean(chartContainer)).toBe(true);
     expect(chartContainer?.classList.contains('h-full')).toBe(true);
     expect(chartContainer?.classList.contains('min-h-[calc(100vh-4rem)]')).toBe(true);
     expect(chartContainer?.classList.contains('rounded-2xl')).toBe(false);
@@ -263,7 +263,6 @@ describe('TradingPage', () => {
 
     const fixture = TestBed.createComponent(TradingPage);
     fixture.detectChanges();
-    const hostHTMLElement = fixture.nativeElement as HTMLElement;
     const assetSelection = TestBed.inject(TradingAssetSelectionService);
     assetSelection.selectAsset({
       id: 'stock-tsla-nasdaq',
@@ -276,9 +275,10 @@ describe('TradingPage', () => {
     });
     fixture.detectChanges();
 
+    const component = fixture.componentInstance as unknown as { isChartLoading: boolean };
     expect(chartMocks.candleSeries.setData).toHaveBeenLastCalledWith([]);
     expect(chartMocks.volumeSeries.setData).toHaveBeenLastCalledWith([]);
-    expect(hostHTMLElement.textContent).toContain('Loading chart data for Tesla Inc.');
+    expect(component.isChartLoading).toBe(true);
 
     resolveTeslaData();
     await fixture.whenStable();

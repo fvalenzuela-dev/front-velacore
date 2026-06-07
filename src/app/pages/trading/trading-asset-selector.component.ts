@@ -38,14 +38,13 @@ export class TradingAssetSelectorComponent {
       return;
     }
 
-    if (event.key !== 'Tab') {
-      return;
+    if (event.key === 'Tab') {
+      this.keepFocusInsideDialog(event);
     }
+  }
 
-    const focusableElements = Array.from(
-      this.assetSelectorDialog?.nativeElement.querySelectorAll<HTMLElement>('button, input') ?? [],
-    ).filter((element) => !('disabled' in element) || !element.disabled);
-
+  private keepFocusInsideDialog(event: KeyboardEvent): void {
+    const focusableElements = this.getFocusableDialogElements();
     const firstElement = focusableElements[0];
     const lastElement = focusableElements.at(-1);
 
@@ -53,6 +52,20 @@ export class TradingAssetSelectorComponent {
       return;
     }
 
+    this.wrapDialogFocus(event, firstElement, lastElement);
+  }
+
+  private getFocusableDialogElements(): HTMLElement[] {
+    return Array.from(
+      this.assetSelectorDialog?.nativeElement.querySelectorAll<HTMLElement>('button, input') ?? [],
+    ).filter((element) => !('disabled' in element) || !element.disabled);
+  }
+
+  private wrapDialogFocus(
+    event: KeyboardEvent,
+    firstElement: HTMLElement,
+    lastElement: HTMLElement,
+  ): void {
     if (event.shiftKey && document.activeElement === firstElement) {
       event.preventDefault();
       lastElement.focus();

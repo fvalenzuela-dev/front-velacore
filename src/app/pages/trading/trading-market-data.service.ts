@@ -49,7 +49,7 @@ export interface TradingChartData {
 @Injectable({ providedIn: 'root' })
 export class TradingMarketDataService {
   private readonly http = inject(HttpClient);
-  private readonly backendBaseUrl = globalThis.location?.origin ?? 'http://localhost:4200';
+  private readonly backendBaseUrl = globalThis.location.origin;
 
   async loadNasdaqCommonStocks(): Promise<readonly TradeableAsset[]> {
     try {
@@ -148,17 +148,23 @@ export class TradingMarketDataService {
       .filter((stock) => stock.symbol.trim().length > 0)
       .map((stock) => {
         const symbol = stock.symbol.trim().toUpperCase();
-        const exchange = stock.exchange?.trim() || 'NASDAQ';
+        const exchange = this.trimOptional(stock.exchange) ?? 'NASDAQ';
         return {
           id: `stock-${symbol.toLowerCase()}-${exchange.toLowerCase()}`,
           symbol,
-          displayName: stock.name?.trim() || stock.instrument_name?.trim() || symbol,
+          displayName:
+            this.trimOptional(stock.name) ?? this.trimOptional(stock.instrument_name) ?? symbol,
           category: 'stock',
           provider: 'twelve-data',
           exchange,
           assetType: 'stock',
         } satisfies TradeableAsset;
       });
+  }
+
+  private trimOptional(value: string | null | undefined): string | undefined {
+    const trimmedValue = value?.trim();
+    return trimmedValue && trimmedValue.length > 0 ? trimmedValue : undefined;
   }
 
   private assertMarketDataMatchesAsset(
@@ -194,7 +200,7 @@ export class TradingMarketDataService {
   }
 
   mapBackendMarketData(response: BackendMarketDataResponse): Omit<TradingChartData, 'source'> {
-    const chartPoints: Array<{ candle: CandlestickData; volume: HistogramData }> = [];
+    const chartPoints: { candle: CandlestickData; volume: HistogramData }[] = [];
 
     for (const candle of response.candles ?? []) {
       const timeInSeconds = Date.parse(candle.timestamp) / 1000;

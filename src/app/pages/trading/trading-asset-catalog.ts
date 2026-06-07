@@ -4,7 +4,7 @@ export type TradeableAssetProvider = 'binance' | 'twelve-data' | 'yahoo';
 
 export type TradeableAssetType = 'crypto' | 'stock' | 'index' | 'etf';
 
-export type TradeableAsset = {
+export interface TradeableAsset {
   id: string;
   symbol: string;
   backendSymbol?: string;
@@ -13,13 +13,13 @@ export type TradeableAsset = {
   provider?: TradeableAssetProvider;
   exchange?: string;
   assetType?: TradeableAssetType;
-};
+}
 
-export type TradeableAssetCategoryOption = {
+export interface TradeableAssetCategoryOption {
   id: TradeableAssetCategory;
   label: string;
   description: string;
-};
+}
 
 export const TRADEABLE_ASSET_CATEGORIES: readonly TradeableAssetCategoryOption[] = [
   {
