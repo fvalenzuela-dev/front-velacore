@@ -4,7 +4,7 @@ import { firstValueFrom } from 'rxjs';
 import type { CandlestickData, HistogramData, UTCTimestamp } from 'lightweight-charts';
 import type { TradeableAsset, TradeableAssetProvider } from './trading-asset-catalog';
 
-const TWELVE_DATA_DAILY_OUTPUT_SIZE = '1000';
+const TWELVE_DATA_DAILY_OUTPUT_SIZE = '2000';
 const TWELVE_DATA_STOCK_PREPOST = 'false';
 
 export interface BackendMarketDataCandle {

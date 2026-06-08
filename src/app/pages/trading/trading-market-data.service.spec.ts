@@ -71,13 +71,13 @@ describe('TradingMarketDataService', () => {
 
   it('should build the Twelve Data backend URL for stock assets with the larger candle window and no pre/post market data', () => {
     expect(service.buildMarketDataUrl(teslaAsset).href).toBe(
-      `${backendBaseUrl}/market-data/twelve-data/TSLA?interval=1day&outputsize=1000&exchange=NASDAQ&asset_type=stock&prepost=false`,
+      `${backendBaseUrl}/market-data/twelve-data/TSLA?interval=1day&outputsize=2000&exchange=NASDAQ&asset_type=stock&prepost=false`,
     );
   });
 
   it('should build the Twelve Data backend URL for ETF assets with the larger candle window', () => {
     expect(service.buildMarketDataUrl(qqqEtfAsset).href).toBe(
-      `${backendBaseUrl}/market-data/twelve-data/QQQ?interval=1day&outputsize=1000&exchange=NASDAQ&asset_type=etf`,
+      `${backendBaseUrl}/market-data/twelve-data/QQQ?interval=1day&outputsize=2000&exchange=NASDAQ&asset_type=etf`,
     );
   });
 
@@ -269,7 +269,7 @@ describe('TradingMarketDataService', () => {
   it('should return backend data when the request succeeds', async () => {
     const dataPromise = service.loadAssetChartData(teslaAsset);
     const request = httpMock.expectOne(
-      '/market-data/twelve-data/TSLA?interval=1day&outputsize=1000&exchange=NASDAQ&asset_type=stock&prepost=false',
+      '/market-data/twelve-data/TSLA?interval=1day&outputsize=2000&exchange=NASDAQ&asset_type=stock&prepost=false',
     );
     request.flush({
       provider: 'twelve-data',
@@ -296,7 +296,7 @@ describe('TradingMarketDataService', () => {
   it('should reject backend data that does not match the requested asset', async () => {
     const dataPromise = service.loadAssetChartData(teslaAsset);
     const request = httpMock.expectOne(
-      '/market-data/twelve-data/TSLA?interval=1day&outputsize=1000&exchange=NASDAQ&asset_type=stock&prepost=false',
+      '/market-data/twelve-data/TSLA?interval=1day&outputsize=2000&exchange=NASDAQ&asset_type=stock&prepost=false',
     );
     request.flush({
       provider: 'binance',
