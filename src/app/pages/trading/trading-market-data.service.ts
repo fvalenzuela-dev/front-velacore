@@ -4,6 +4,9 @@ import { firstValueFrom } from 'rxjs';
 import type { CandlestickData, HistogramData, UTCTimestamp } from 'lightweight-charts';
 import type { TradeableAsset, TradeableAssetProvider } from './trading-asset-catalog';
 
+const TWELVE_DATA_DAILY_OUTPUT_SIZE = '2000';
+const TWELVE_DATA_STOCK_PREPOST = 'false';
+
 export interface BackendMarketDataCandle {
   timestamp: string;
   open: number;
@@ -122,7 +125,10 @@ export class TradingMarketDataService {
 
     if (asset.provider === 'twelve-data') {
       const url = new URL(`/market-data/twelve-data/${symbol}`, this.backendBaseUrl);
-      const params = new URLSearchParams({ interval: '1day', outputsize: '90' });
+      const params = new URLSearchParams({
+        interval: '1day',
+        outputsize: TWELVE_DATA_DAILY_OUTPUT_SIZE,
+      });
 
       if (asset.exchange) {
         params.set('exchange', asset.exchange);
@@ -130,6 +136,10 @@ export class TradingMarketDataService {
 
       if (asset.assetType === 'stock' || asset.assetType === 'etf') {
         params.set('asset_type', asset.assetType);
+      }
+
+      if (asset.assetType === 'stock') {
+        params.set('prepost', TWELVE_DATA_STOCK_PREPOST);
       }
 
       url.search = params.toString();
